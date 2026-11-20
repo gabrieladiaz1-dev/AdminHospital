@@ -121,13 +121,14 @@ export function StaffShiftsPage({ initialStaffId = '' }: { initialStaffId?: stri
   function manageRecurring(journey: RecurringJourney) { setEditDate(null); setAssignDate(null); setEditWeekday(null); setView('assign'); setDraft(null); setRecurringId(journey.id); setEmployee(journey.staff_id); setRole(journey.staff_role); setRecurringClose(false) }
 
   function editRecurringDay(date: string) {
-    const current = (data.recurring_journeys ?? []).filter(j => j.staff_id === employee && j.active && !j.closed_on && (!j.valid_until || j.valid_until >= staffToday()))
-    const journey = current.filter(j => j.weekdays.includes(weekday(date)) && j.valid_from <= date && (!j.valid_until || j.valid_until >= date)).sort((a,b) => b.valid_from.localeCompare(a.valid_from))[0]
+    // The version in force on that date, even if it already has an end date (closed_on or valid_until).
+    const journey = (data.recurring_journeys ?? []).filter(j => j.staff_id === employee && j.weekdays.includes(weekday(date)) && j.valid_from <= date
+      && (!j.closed_on || j.closed_on > date) && (!j.valid_until || j.valid_until >= date)).sort((a,b) => b.valid_from.localeCompare(a.valid_from))[0]
     if (!journey) {
       const dated = groups.find(group => group.kind === 'shift' && group.staffId === employee && group.active && !group.recurringId && group.dates.includes(date))
       if (dated) { edit(dated, date); return }
-      const existing = editableJourney(data.recurring_journeys ?? [], employee, staffToday())
-      setEditDate(null); setEditWeekday(null); setAssignDate(date); setRecurringId(existing?.id ?? null); setRecurringClose(false); setDraft(null); setView('assign')
+      // No journey covers this date: create one for this date only, never edit the whole journey.
+      setEditDate(date); setEditWeekday(weekday(date)); setAssignDate(date); setRecurringId(null); setRecurringClose(false); setDraft(null); setView('assign')
       return
     }
     setAssignDate(null)
