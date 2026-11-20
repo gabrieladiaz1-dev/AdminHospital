@@ -7,7 +7,7 @@ export const staffWeek = (value: Date | string = new Date()) => monday(staffToda
 const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
 export function findScheduleStaff(staff: PlanningStaff[], role: StaffRole, query: string) {
   const tokens = normalize(query).split(/\s+/).filter(Boolean)
-  return staff.filter(s => s.category === role && s.roles.includes(role) && tokens.every(t => normalize(`${s.first_name ?? ''} ${s.last_name ?? ''} ${s.employee_code}`).includes(t)))
+  return staff.filter(s => s.category === role && s.roles.includes(role) && tokens.every(t => normalize(`${s.first_name ?? ''} ${s.last_name ?? ''} ${s.employee_code} ${s.id}`).includes(t)))
 }
 export interface WeekBlock { id: string; kind: 'shift' | 'consultation' | 'break' | 'absence'; starts_at: string; ends_at: string; active: boolean; room?: string; minutes?: number; reason?: string | null; group?: ScheduleGroup; originDate?: string }
 export function scheduleForDate(group: ScheduleGroup, date: string): ScheduleGroup {

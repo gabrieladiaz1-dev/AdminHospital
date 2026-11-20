@@ -22,6 +22,60 @@ export function editableJourney(journeys: RecurringJourney[], staffId: string, t
   return journeys.filter(j => j.staff_id === staffId && j.active && !j.closed_on && (!j.valid_until || j.valid_until >= today))
     .sort((a, b) => b.valid_from.localeCompare(a.valid_from))[0]
 }
+export function journeyFieldErrors(values: JourneyValues, doctor: boolean): Record<string, string> {
+  const errors: Record<string, string> = {}
+  const validClock = (value: string) => /^([01]\d|2[0-3]):[0-5]\d$/.test(value)
+  if (!values.staff_id) errors.staff_id = 'Selecciona al empleado.'
+  if (!values.weekdays.length || values.weekdays.some(d => !Number.isInteger(d) || d < 0 || d > 6)) errors.weekdays = 'Selecciona al menos un día laboral válido.'
+  if (!values.valid_from || (values.valid_until && values.valid_until < values.valid_from)) errors.valid_from = 'Comprueba las fechas de vigencia.'
+  if (!validClock(values.start_time)) errors.start_time = 'Indica una hora de entrada válida.'
+  if (!validClock(values.end_time)) errors.end_time = 'Indica una hora de salida válida.'
+  if (validClock(values.start_time) && validClock(values.end_time) && values.start_time === values.end_time) {
+    errors.start_time = 'La entrada y la salida deben ser diferentes.'
+    errors.end_time = 'La entrada y la salida deben ser diferentes.'
+  }
+  const minute = (value: string) => { const [h, m] = value.split(':').map(Number); return h * 60 + m }
+  const base = validClock(values.start_time) ? minute(values.start_time) : 0
+  const offset = (time: string) => minute(time) + (minute(time) < base ? 1440 : 0)
+  const finish = validClock(values.end_time) ? offset(values.end_time) : 0
+  const checkPeriods = (list: { start_time: string; end_time: string }[], prefix: string, name: string) => {
+    const intervals = list.map((period, index) => {
+      const startKey = `${prefix}.${index}.start_time`
+      const endKey = `${prefix}.${index}.end_time`
+      if (!validClock(period.start_time)) errors[startKey] = `Indica una hora válida para ${name.toLowerCase()}.`
+      if (!validClock(period.end_time)) errors[endKey] = `Indica una hora válida para ${name.toLowerCase()}.`
+      if (!validClock(period.start_time) || !validClock(period.end_time) || !validClock(values.start_time) || !validClock(values.end_time)) return null
+      return { index, start: offset(period.start_time), end: offset(period.end_time), startKey, endKey }
+    }).filter((period): period is NonNullable<typeof period> => period !== null).sort((a, b) => a.start - b.start)
+    for (let i = 0; i < intervals.length; i++) {
+      const period = intervals[i]
+      if (period.start < base || period.end > finish || period.end <= period.start) {
+        errors[period.startKey] = `${name}: cada periodo debe estar dentro de la jornada.`
+        errors[period.endKey] = `${name}: cada periodo debe estar dentro de la jornada.`
+      }
+      if (i > 0 && period.start < intervals[i - 1].end) {
+        errors[period.startKey] = `${name}: los periodos no pueden superponerse.`
+        errors[intervals[i - 1].endKey] = `${name}: los periodos no pueden superponerse.`
+      }
+    }
+  }
+  checkPeriods(values.breaks, 'breaks', 'Descansos')
+  values.breaks.forEach((pause, index) => {
+    if (!pause.reason.trim()) errors[`breaks.${index}.reason`] = 'Escribe una descripción para este descanso.'
+  })
+  if (doctor) {
+    if (!values.room_id) errors.room_id = 'Selecciona un consultorio.'
+    if (!values.specialty_id) errors.specialty_id = 'Selecciona la especialidad del doctor.'
+    if (!values.consultations.length) errors.consultations = 'Añade al menos un horario de atención.'
+    checkPeriods(values.consultations, 'consultations', 'Atención')
+    values.consultations.forEach((consultation, index) => {
+      if (!Number.isInteger(consultation.slot_minutes) || consultation.slot_minutes < 5 || consultation.slot_minutes > 180) {
+        errors[`consultations.${index}.slot_minutes`] = 'Las citas deben durar entre 5 y 180 minutos.'
+      }
+    })
+  }
+  return errors
+}
 export function validateJourney(values: JourneyValues, doctor: boolean) {
   if (!values.staff_id) return 'Selecciona al empleado.'
   if (!values.weekdays.length || values.weekdays.some(d => !Number.isInteger(d) || d < 0 || d > 6)) return 'Selecciona al menos un día laboral válido.'

@@ -5,7 +5,7 @@ import assert from 'node:assert/strict'
 import { createServer } from 'vite'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { clockParts, clockValue, editableJourney, journeyEnd, journeyOverlaps, validateJourney } from '../src/lib/recurringJourney.ts'
+import { clockParts, clockValue, editableJourney, journeyEnd, journeyOverlaps, journeyFieldErrors, validateJourney } from '../src/lib/recurringJourney.ts'
 import { savedScheduleGroups } from '../src/lib/planningGroups.ts'
 
 const values = { staff_id: 'local-person', weekdays: [1, 2, 3, 4, 5, 6], start_time: '08:00', end_time: '16:00', shift_type: 'ordinario', valid_from: '2030-01-01', valid_until: null, breaks: [{ start_time: '12:00', end_time: '12:30', reason: 'Almuerzo' }], consultations: [], room_id: null, specialty_id: null }
@@ -48,6 +48,19 @@ test('doctor exige consultorio real, especialidad y atención dentro de su jorna
   assert.match(validateJourney(doctor, false), /Recepción/)
 })
 
+test('validación por campo identifica datos incompletos y errores de horario', () => {
+  const missingDoctorFields = journeyFieldErrors({ ...values, start_time: '08:00', end_time: '08:00' }, true)
+  assert.match(missingDoctorFields.start_time, /diferentes/)
+  assert.match(missingDoctorFields.end_time, /diferentes/)
+  assert.match(missingDoctorFields.room_id, /consultorio/)
+  assert.match(missingDoctorFields.specialty_id, /especialidad/)
+  assert.match(missingDoctorFields.consultations, /horario de atención/)
+  const invalidBreak = journeyFieldErrors({ ...values, breaks: [{ start_time: '07:00', end_time: '08:00', reason: '' }] }, false)
+  assert.match(invalidBreak['breaks.0.start_time'], /dentro de la jornada/)
+  assert.match(invalidBreak['breaks.0.reason'], /descripción/)
+  assert.deepEqual(journeyFieldErrors(values, false), {})
+})
+
 test('reserva fija conserva consultorio incluso en días libres y cierra solo desde la fecha efectiva', () => {
   assert.equal(journeyOverlaps(journey, '2050-01-01', null), true)
   const closed = { ...journey, active: false, closed_on: '2030-02-01' }
@@ -66,7 +79,7 @@ test('proyecciones recurrentes conservan su identidad y no absorben excepciones 
   assert.equal(groups.find(g => g.kind === 'absence').originals[0].id, 'exception')
 })
 
-test('render del formulario: cinco pasos para doctor, recepción sin campos médicos y ninguna tabla semanal', async () => {
+test('render del formulario: empleado primero, campos contextuales y validación visible', async () => {
   const server = await createServer({ server: { middlewareMode: true, hmr: false }, appType: 'custom' })
   try {
     const { FriendlyTimeField } = await server.ssrLoadModule('/src/components/FriendlyTimeField.tsx')
@@ -78,6 +91,12 @@ test('render del formulario: cinco pasos para doctor, recepción sin campos méd
     const { RecurringJourneyForm } = await server.ssrLoadModule('/src/components/RecurringJourneyForm.tsx')
     for (const role of ['doctor', 'recepcionista']) {
       const data = { ready: true, recurring_ready: true, staff: [{ id: values.staff_id, first_name: 'Empleado', last_name: 'Local', employee_code: 'LOCAL', category: role, roles: [role], active: true }], rooms: [{ id: 'local-room', code: 'LOCAL-01', active: true }], doctor_specialties: [{ doctor_id: values.staff_id, specialty_id: 1, name: 'Especialidad local' }], shifts: [], consultations: [], absences: [], recurring_journeys: [] }
+      const empty = renderToStaticMarkup(createElement(RecurringJourneyForm, { data, initialRole: role, loading: false, onBusy() {}, onSaved() {}, onManage() {} }))
+      assert.ok(empty.includes('Busca y selecciona al empleado'))
+      assert.ok(empty.includes('Nombre, código o identificador'))
+      assert.ok(!empty.includes('<b>02</b>'))
+      assert.ok(!empty.includes('Horario laboral'))
+      assert.ok(!empty.includes('REVISA ANTES DE GUARDAR'))
       const html = renderToStaticMarkup(createElement(RecurringJourneyForm, { data, initialEmployee: values.staff_id, initialRole: role, loading: false, onBusy() {}, onSaved() {}, onManage() {} }))
       assert.ok(html.includes('Asignar jornada fija'))
       assert.ok(html.includes(`min="${addDays(staffToday(), 1)}" value="${addDays(staffToday(), 1)}"`))
@@ -89,6 +108,8 @@ test('render del formulario: cinco pasos para doctor, recepción sin campos méd
       assert.equal(html.includes('Consultorio fijo'), role === 'doctor')
       assert.equal(html.includes('Especialidad del doctor'), role === 'doctor')
       assert.equal(html.includes('<b>05</b>'), role === 'doctor')
+      assert.equal(html.includes('Selecciona un consultorio.'), role === 'doctor')
+      assert.equal(html.includes('aria-invalid="true"'), role === 'doctor')
       const editing = { ...journey, valid_from: '2099-01-01', staff_role: role, weekdays: [1,2,3,4,5,6] }
       const editingData = { ...data, recurring_journeys: [editing] }
       const day = renderToStaticMarkup(createElement(RecurringJourneyForm, { data: editingData, initialJourney: editing, initialEmployee: values.staff_id, editWeekday: 6, loading: false, onBusy() {}, onSaved() {}, onManage() {} }))

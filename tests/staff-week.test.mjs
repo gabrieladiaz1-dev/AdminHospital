@@ -23,10 +23,11 @@ const data = {
 const groups = savedScheduleGroups(data)
 const week = '2026-11-16'
 
-test('busca doctores y recepción por nombre, apellido o código sin tildes', () => {
+test('busca por nombre, apellido, código o identificador sin tildes', () => {
   assert.deepEqual(findScheduleStaff(staff, 'doctor', 'lopez maria').map(p => p.id), ['doctor'])
   assert.deepEqual(findScheduleStaff(staff, 'recepcionista', '002').map(p => p.id), ['reception'])
   assert.deepEqual(findScheduleStaff(staff, 'recepcionista', 'ANA PEREZ').map(p => p.id), ['reception'])
+  assert.deepEqual(findScheduleStaff(staff, 'doctor', 'doctor').map(p => p.id), ['doctor'])
   assert.deepEqual(findScheduleStaff(staff, 'doctor', '002'), [])
 })
 
