@@ -17,6 +17,7 @@ const GeneralDashboard = lazy(() => import('./pages/GeneralDashboard').then(({ G
 const EmployeesPage = lazy(() => import('./pages/EmployeesPage').then(({ EmployeesPage }) => ({ default: EmployeesPage })))
 const RoomsPage = lazy(() => import('./pages/RoomsPage').then(({ RoomsPage }) => ({ default: RoomsPage })))
 const StaffShiftsPage = lazy(() => import('./pages/StaffShiftsPage').then(({ StaffShiftsPage }) => ({ default: StaffShiftsPage })))
+const PharmacyPage = lazy(() => import('./pages/PharmacyPage').then(({ PharmacyPage }) => ({ default: PharmacyPage })))
 const InventoryPage = lazy(() => import('./pages/InventoryPage').then(({ InventoryPage }) => ({ default: InventoryPage })))
 const AmbulancePage = lazy(() => import('./pages/AmbulancePage').then(({ AmbulancePage }) => ({ default: AmbulancePage })))
 const ReportsPage = lazy(() => import('./pages/ReportsPage').then(({ ReportsPage }) => ({ default: ReportsPage })))
@@ -107,6 +108,7 @@ function HospitalApp({ session, onSignOut }: { session: Session; onSignOut: () =
                 : isAdministrator && <EmployeesPage onSchedule={staffId => { setPlanningStaffId(staffId ?? ''); setPage('Horarios y turnos') }} />)}
             {page === 'Habitaciones y Camas' && <RoomsPage />}
             {page === 'Horarios y turnos' && isAdministrator && <StaffShiftsPage initialStaffId={planningStaffId} />}
+            {page === 'Farmacia' && isAdministrator && <PharmacyPage />}
             {page === 'Inventario y Recursos' && <InventoryPage />}
             {page === 'Ambulancia' && (isAdministrator || isReceptionist) && <AmbulancePage key={transportRequestId ?? `fleet-${transportUnitId}`} initialRequestId={transportRequestId} initialUnitId={transportUnitId} />}
             {page === 'Reportes y Analítica' && <ReportsPage />}

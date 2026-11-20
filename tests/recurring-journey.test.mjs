@@ -136,3 +136,14 @@ test('validación rechaza horas fuera del reloj y días inválidos', () => {
   assert.notEqual(validateJourney({ ...values, weekdays: [7] }, false), '')
   assert.notEqual(validateJourney({ ...values, breaks: [{ start_time: '12:99', end_time: '13:00', reason: 'Pausa' }] }, false), '')
 })
+
+test('roomConflicts detects another doctor holding the room in overlapping dates', async () => {
+  const { roomConflicts, roomConflictMessage } = await import('../src/lib/recurringJourney.ts')
+  const base = { id: 'a', staff_id: 'doc-a', staff_role: 'doctor', weekdays: [1], start_time: '08:00', end_time: '12:00', shift_type: 'ordinario', breaks: [], consultations: [], consulting_room_id: 'r1', specialty_id: 1, valid_from: '2030-01-01', valid_until: '2030-06-30', closed_on: null, active: true, version: '1' }
+  assert.equal(roomConflicts([base], 'r1', 'doc-b', '2030-03-01', null).length, 1)
+  assert.equal(roomConflicts([base], 'r1', 'doc-b', '2030-07-01', null).length, 0)
+  assert.equal(roomConflicts([base], 'r1', 'doc-a', '2030-03-01', null).length, 0)
+  assert.equal(roomConflicts([base], 'r2', 'doc-b', '2030-03-01', null).length, 0)
+  assert.equal(roomConflicts([base], 'r1', 'doc-b', '2030-03-01', null, 'a').length, 0)
+  assert.match(roomConflictMessage(base, 'C-101', 'Ana Pérez'), /C-101.*Ana Pérez.*2030-01-01.*2030-06-30/)
+})

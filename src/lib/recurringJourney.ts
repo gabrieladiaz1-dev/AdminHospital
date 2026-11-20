@@ -18,6 +18,15 @@ export function journeyOverlaps(journey: RecurringJourney, from: string, until: 
   const end = journeyEnd(journey)
   return (!end || end >= journey.valid_from) && (!until || journey.valid_from <= until) && (!end || end >= from)
 }
+// Mirrors recurring_fixed_room_excl: a fixed room belongs to one doctor for the whole overlapping validity.
+export function roomConflicts(journeys: RecurringJourney[], roomId: string | null, staffId: string, from: string, until: string | null, ignoreId?: string) {
+  if (!roomId) return []
+  return journeys.filter(j => j.id !== ignoreId && j.staff_id !== staffId && j.consulting_room_id === roomId && journeyOverlaps(j, from, until))
+}
+export function roomConflictMessage(conflict: RecurringJourney, roomCode: string, doctorName: string) {
+  const end = journeyEnd(conflict)
+  return `El consultorio ${roomCode} ya está asignado a ${doctorName} desde ${conflict.valid_from}${end ? ` hasta ${end}` : ' sin fecha de fin'}. Elige otro consultorio o una vigencia que no coincida.`
+}
 export function editableJourney(journeys: RecurringJourney[], staffId: string, today: string) {
   return journeys.filter(j => j.staff_id === staffId && j.active && !j.closed_on && (!j.valid_until || j.valid_until >= today))
     .sort((a, b) => b.valid_from.localeCompare(a.valid_from))[0]

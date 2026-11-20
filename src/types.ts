@@ -12,6 +12,7 @@ export type Page =
   | 'Habitaciones y Camas'
   | 'Horarios y turnos'
   | 'Inventario y Recursos'
+  | 'Farmacia'
   | 'Ambulancia'
   | 'Reportes y Analítica'
   | 'Configuración'

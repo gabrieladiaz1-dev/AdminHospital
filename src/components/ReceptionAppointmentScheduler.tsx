@@ -1,7 +1,7 @@
 import { usePlanningRealtime } from '../lib/usePlanningRealtime'
 import { useEffect, useRef, useState } from 'react'
 import { availableSlots, displayTime, localDate, receptionDoctors, receptionRpc, requestAppointment, type ReceptionAppointment, type ReceptionDoctor, type ReceptionPatient, type Slot } from '../lib/reception'
-import { appointmentMatches, bookingCall, definitiveBookingFailure, type BookingIntent } from '../lib/receptionBooking'
+import { appointmentMatches, bookingCall, definitiveBookingFailure, isSlotConflict, sameSlot, type BookingIntent } from '../lib/receptionBooking'
 import { Icon } from './Icon'
 import './ReceptionAgenda.css'
 
@@ -23,7 +23,9 @@ export function ReceptionAppointmentScheduler({ patient, code, specialties, requ
   const [pending, setPending] = useState<BookingIntent | null>(null)
   const [recovering, setRecovering] = useState(!requestId && Boolean(sessionStorage.getItem(`reception-booking:${patient.id}`)))
   const [recoveryError, setRecoveryError] = useState(false)
+  const [slotsRevision, setSlotsRevision] = useState(0)
   const lock = useRef(false)
+  const keepError = useRef(false)
   const key = useRef(sessionStorage.getItem(`reception-booking:${patient.id}`) || crypto.randomUUID())
   const onSavedRef = useRef(onSaved)
   useEffect(() => { onSavedRef.current = onSaved }, [onSaved])
@@ -45,16 +47,26 @@ export function ReceptionAppointmentScheduler({ patient, code, specialties, requ
     let active = true
     setSlots([]); setSlot(null); setConfirmed(false)
     if (!doctor) return
-    setLoading(true); setError('')
+    setLoading(true); if (keepError.current) keepError.current = false; else setError('')
     availableSlots(specialty, date, patient.id, doctor).then(rows => { if (active) setSlots(rows) }).catch(e => { if (active) setError(e.message) }).finally(() => { if (active) setLoading(false) })
     return () => { active = false }
-  }, [doctor, specialty, date, patient.id, planningRevision])
+  }, [slotsRevision, doctor, specialty, date, patient.id, planningRevision])
   async function save() {
     if (lock.current || recovering || recoveryError || !confirmed || (!slot && !pending)) return
     const intent: BookingIntent = pending ?? { patientId: patient.id, slot: slot!, specialtyId: specialty, requestId, key: key.current, reason, symptoms }
     lock.current = true; setSaving(true); setError(''); setPending(intent)
     if (!requestId) sessionStorage.setItem(`reception-booking:${patient.id}`, key.current)
     try {
+      if (!pending) {
+        // Validación previa: otra recepcionista pudo ocupar este horario desde que se cargó la lista.
+        const fresh = await availableSlots(specialty, date, patient.id, intent.slot.doctor_id)
+        if (!fresh.some(s => sameSlot(s, intent.slot))) {
+          setPending(null); if (!requestId) sessionStorage.removeItem(`reception-booking:${patient.id}`)
+          keepError.current = true; setSlot(null); setConfirmed(false); setSlotsRevision(r => r + 1)
+          setError('Este horario acaba de ser ocupado por otra programación. Se actualizaron las horas disponibles; elige otra.')
+          return
+        }
+      }
       const call = bookingCall(intent)
       const result = await receptionRpc<string | { appointment_id: string }>(call.name, call.args)
       if (!(typeof result === 'string' ? result : result?.appointment_id)) throw new Error('El servicio no confirmó la cita. Reintenta la misma operación.')
@@ -72,7 +84,8 @@ export function ReceptionAppointmentScheduler({ patient, code, specialties, requ
             setError('La operación anterior tiene una cita con datos distintos. Revisa la agenda antes de continuar; no se creará otra cita.')
             return
           }
-          setPending(null); sessionStorage.removeItem(`reception-booking:${patient.id}`); key.current = crypto.randomUUID(); setSlot(null); setDoctor('')
+          setPending(null); sessionStorage.removeItem(`reception-booking:${patient.id}`); key.current = crypto.randomUUID(); setSlot(null)
+          if (isSlotConflict(e)) { keepError.current = true; setConfirmed(false); setSlotsRevision(r => r + 1) } else setDoctor('')
         } catch { /* Keep the original key when reconciliation cannot be confirmed. */ }
       }
       setError(e instanceof Error ? e.message : 'No se confirmó el guardado. Reintenta esta misma cita; no se enviará otra solicitud.')

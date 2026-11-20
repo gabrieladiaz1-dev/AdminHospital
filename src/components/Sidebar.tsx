@@ -9,6 +9,7 @@ const navigation: { label: Page; icon: IconName }[] = [
   { label: 'Laboratorios', icon: 'flask' },
   { label: 'Habitaciones y Camas', icon: 'bed' },
   { label: 'Horarios y turnos', icon: 'clock' },
+  { label: 'Farmacia', icon: 'file' },
   { label: 'Inventario y Recursos', icon: 'box' },
   { label: 'Ambulancia', icon: 'activity' },
   { label: 'Reportes y Analítica', icon: 'arrow' },

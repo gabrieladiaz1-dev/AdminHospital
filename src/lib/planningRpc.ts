@@ -20,7 +20,7 @@ export function planningError(operation: string, error: unknown, status?: number
   } else if (code === 'PGRST203') {
     category = 'rpc'; text = 'Supabase encuentra varias firmas de esta RPC y no puede resolver la operación.'
   } else if (code === '23P01') {
-    category = 'conflict'; text = detail && !/conflicting key|exclusion constraint/i.test(detail) ? detail : 'La jornada o el consultorio se superponen con otra asignación. Revisa los días y la vigencia.'
+    category = 'conflict'; text = /recurring_fixed_room_excl|consulting_room_id/i.test(detail) ? 'El consultorio ya está asignado a otro doctor en esas fechas. Elige otro consultorio o ajusta la vigencia.' : /recurring_employee_weekdays_excl/i.test(detail) ? 'El empleado ya tiene una jornada en esos días y fechas. Edita la jornada existente.' : detail && !/conflicting key|exclusion constraint/i.test(detail) ? detail : 'La jornada o el consultorio se superponen con otra asignación. Revisa los días y la vigencia.'
   } else if (code === '40001') {
     category = 'conflict'; text = 'La jornada cambió desde que la abriste. Actualiza los datos antes de volver a editar.'
   } else if (code === '23505') {

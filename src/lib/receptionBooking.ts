@@ -19,3 +19,10 @@ export function definitiveBookingFailure(error: unknown) {
 export function availablePatientSlots(slots: Slot[], booked: { doctor_id: string; consulting_room_id: string; patient_id: string; starts_at: string; ends_at: string }[], doctorIds: Set<string>, patientId: string | null, now: number, doctorId?: string) {
   return slots.filter(s => doctorIds.has(s.doctor_id) && (!doctorId || s.doctor_id === doctorId) && new Date(s.starts_at).getTime() > now && !booked.some(b => (b.doctor_id === s.doctor_id || b.consulting_room_id === s.consulting_room_id || b.patient_id === patientId) && new Date(b.starts_at) < new Date(s.ends_at) && new Date(b.ends_at) > new Date(s.starts_at)))
 }
+export function sameSlot(a: Slot, b: Slot) {
+  return a.doctor_id === b.doctor_id && a.consulting_room_id === b.consulting_room_id && new Date(a.starts_at).getTime() === new Date(b.starts_at).getTime() && new Date(a.ends_at).getTime() === new Date(b.ends_at).getTime()
+}
+/** Conflict raised by the appointments exclusion constraints (doctor, room or patient overlap). */
+export function isSlotConflict(error: unknown) {
+  return (error as { code?: string })?.code === '23P01'
+}

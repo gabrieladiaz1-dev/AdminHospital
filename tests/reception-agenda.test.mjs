@@ -76,3 +76,11 @@ test('SQL preparado para solicitud y presencial sin expediente conserva identida
   assert.match(scheduling, /private\.planning_valid_slot\(p_doctor,p_room,p_start,p_end\)/)
   assert.match(scheduling, /v_id IS NOT NULL AND r\.status='agendada' THEN RETURN v_id/)
 })
+
+test('detecta horario ocupado por otra recepcionista', async () => {
+  const { sameSlot, isSlotConflict } = await import('../src/lib/receptionBooking.ts')
+  assert.equal(sameSlot(slot, structuredClone(slot)), true)
+  assert.equal(sameSlot(slot, { ...slot, consulting_room_id: 'otro' }), false)
+  assert.equal(isSlotConflict({ code: '23P01' }), true)
+  assert.equal(isSlotConflict({ code: '23505' }), false)
+})

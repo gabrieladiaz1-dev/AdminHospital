@@ -12,6 +12,7 @@ const endpointConnectedPages = new Set<Page>([
   'Resumen general',
   'Personal hospitalario',
   'Horarios y turnos',
+  'Farmacia',
 ])
 
 export function isEndpointConnectedPage(page: Page): boolean {

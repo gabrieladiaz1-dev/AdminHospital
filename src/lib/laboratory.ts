@@ -26,3 +26,20 @@ export const labStages: Record<string, string> = { draft: 'Borrador', review: 'P
 export const readLaboratoryAccess = () => receptionRpc<LaboratoryAccess>('my_laboratory_access', {})
 export const readLaboratoryPanel = (f: LabFilters) => receptionRpc<LabPanel>('laboratory_panel', { p_offset: f.offset, p_status: f.status || null, p_query: f.query.trim(), p_from: f.from || null, p_until: f.until || null, p_test: f.test ? Number(f.test) : null, p_doctor: f.doctor || null })
 export const readLaboratoryOrder = (id: string) => receptionRpc<LabDetail>('laboratory_order_detail', { p_order: id })
+
+export interface LabDeskPatient { id: string; full_name: string; email: string | null; dui: string | null; phone: string | null }
+export interface LabDeskOrder {
+  id: string; order_code: string; test_name: string; status: 'pendiente' | 'en_proceso' | 'completado'; ordered_at: string; reason: string | null
+  version: number | null; workflow_stage: string | null; draft_summary: string | null; draft_values: LabValues; has_required_parameters: boolean
+  published_summary: string | null; published_at: string | null; published_to_patient_at: string | null
+}
+export async function searchLaboratoryPatients(query: string) {
+  const term = query.trim()
+  if (term.length < 2) return []
+  return (await receptionRpc<LabDeskPatient[]>('laboratory_search_patients', { p_query: term })) ?? []
+}
+export const readLaboratoryPatientOrders = async (patientId: string) => (await receptionRpc<LabDeskOrder[]>('laboratory_patient_orders', { p_patient: patientId })) ?? []
+export const startLaboratoryOrder = (orderId: string) => receptionRpc('start_laboratory_order', { p_order: orderId })
+/** Guarda, valida y publica al portal del paciente en una sola transacción del servidor. */
+export const sendLaboratoryResults = (order: LabDeskOrder, summary: string) =>
+  receptionRpc('complete_laboratory_exam', { p_order: order.id, p_version: order.version, p_summary: summary.trim(), p_values: order.draft_values ?? {}, p_to_patient: true })
