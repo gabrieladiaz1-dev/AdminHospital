@@ -50,3 +50,13 @@
 .employee-specialty:has(input:checked) { background: #fcf0f6; border-color: #ce9cb4; color: #934567; }
 @media(max-width:1250px) { .complete-days { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media(max-width:650px) { .complete-days,.employee-form-grid,.employee-review dl { grid-template-columns: 1fr; } .complete-schedule { padding: 16px; } .complete-person > header { flex-wrap: wrap; } .experience-heading .experience-icon { display: none; } }
+.staff-page-intro{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;padding:24px;border:1px solid #ead6e0;border-radius:18px;background:linear-gradient(110deg,#fff,#f9edf3)}
+.staff-page-intro span{font-size:11px;font-weight:750;letter-spacing:.1em;color:#9c5270}.staff-page-intro h2{margin:5px 0;font-size:26px;font-weight:750;color:#71183a}.staff-page-intro p{font-size:14px;color:#75596a}.staff-page-intro button{min-height:48px}
+.staff-section-nav button{min-height:44px;font-size:13px}
+@media(max-width:650px){.staff-page-intro{padding:20px}.staff-page-intro button{width:100%}.staff-section-nav button{white-space:normal;min-width:130px}}
+.staff-planning-view{display:grid;gap:18px}
+.staff-workspace-bar{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:24px 28px;border:1px solid #e8d7e0;border-radius:18px;background:#fff;box-shadow:0 4px 18px #4c173009}
+.staff-workspace-eyebrow{font-size:11px;font-weight:750;letter-spacing:.11em;color:#9b4d6b}.staff-workspace-bar h2{margin:5px 0 4px;font-size:24px;line-height:1.2;font-weight:750;color:#6f1737}.staff-workspace-bar p{font-size:13px;line-height:1.5;color:#765c69}
+.staff-workspace-actions{display:grid;justify-items:end;gap:8px}.staff-section-nav{display:flex;flex-wrap:wrap;gap:7px;padding:5px;border:1px solid #e8dbe2;border-radius:12px;background:#faf6f8}.staff-section-nav button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:10px 15px;border-radius:9px;color:#713b52;font-size:13px;font-weight:700}.staff-section-nav button[aria-current=page]{background:#870b30;color:#fff;box-shadow:0 3px 10px #870b3022}.staff-workspace-actions .planning-live{margin:0;font-size:11px;color:#6b6670}
+@media(max-width:900px){.staff-workspace-bar{align-items:start;flex-direction:column}.staff-workspace-actions{justify-items:start;width:100%}}
+@media(max-width:620px){.staff-workspace-bar{padding:19px}.staff-section-nav{display:grid;grid-template-columns:1fr 1fr;width:100%}.staff-section-nav button:last-child{grid-column:1/-1}.staff-section-nav button{padding:10px 7px}}
