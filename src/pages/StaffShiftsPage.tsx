@@ -43,7 +43,6 @@ export function StaffShiftsPage({ initialStaffId = '' }: { initialStaffId?: stri
   const [searchError, setSearchError] = useState('')
   const [recurringId, setRecurringId] = useState<string | null>(null)
   const [recurringClose, setRecurringClose] = useState(false)
-  const [recurringEditOpen, setRecurringEditOpen] = useState(false)
   const [editDate, setEditDate] = useState<string | null>(null)
   const realtime = usePlanningRealtime()
   const [editWeekday, setEditWeekday] = useState<number | null>(null)
@@ -110,13 +109,13 @@ export function StaffShiftsPage({ initialStaffId = '' }: { initialStaffId?: stri
   }
   function switchRole(next: StaffRole) { setRole(next); setEmployee(''); setQuery(''); setDraft(null); setError(''); setNotice('') }
   function switchView(next: typeof view) { if (next === 'assign') { setEditDate(null); setEditWeekday(null); setDraft(null); setRecurringId(editableJourney(data.recurring_journeys ?? [], employee, staffToday())?.id ?? null); setRecurringClose(false) }; setView(next); setError(''); setNotice('') }
-  function manageRecurring(journey: RecurringJourney) { setEditDate(null); setEditWeekday(null); setRecurringEditOpen(true); setDraft(null); setRecurringId(journey.id); setEmployee(journey.staff_id); setRole(journey.staff_role); setRecurringClose(false) }
+  function manageRecurring(journey: RecurringJourney) { setEditDate(null); setEditWeekday(null); setView('assign'); setDraft(null); setRecurringId(journey.id); setEmployee(journey.staff_id); setRole(journey.staff_role); setRecurringClose(false) }
 
   function editRecurringDay(date: string) {
     const current = (data.recurring_journeys ?? []).filter(j => j.staff_id === employee && j.active && !j.closed_on && (!j.valid_until || j.valid_until >= staffToday()))
     const journey = current.filter(j => j.weekdays.includes(weekday(date)) && j.valid_from <= date && (!j.valid_until || j.valid_until >= date)).sort((a,b) => b.valid_from.localeCompare(a.valid_from))[0]
     if (!journey) return
-    setEditDate(date); setRecurringId(journey.id); setRecurringClose(false); setEditWeekday(weekday(date)); setDraft(null); setRecurringEditOpen(true)
+    setEditDate(date); setRecurringId(journey.id); setRecurringClose(false); setEditWeekday(weekday(date)); setDraft(null); setView('assign')
   }
 
   function startForm(kind: Draft['kind'] = 'shift', date?: string) {
@@ -133,7 +132,7 @@ export function StaffShiftsPage({ initialStaffId = '' }: { initialStaffId?: stri
     const editRole = data.staff.find(person => person.id === group.staffId)?.category
     if (editRole !== 'doctor' && editRole !== 'recepcionista') return
     setView('assign')
-    if (group.recurringId) { setEditDate(onlyDate ?? null); setView('schedule'); setRecurringEditOpen(true); setEditWeekday(onlyDate ? weekday(onlyDate) : null); setRecurringId(group.recurringId); setRecurringClose(false); setDraft(null); return }
+    if (group.recurringId) { setEditDate(onlyDate ?? null); setView('assign'); setEditWeekday(onlyDate ? weekday(onlyDate) : null); setRecurringId(group.recurringId); setRecurringClose(false); setDraft(null); return }
     const selected = onlyDate ? scheduleForDate(group, onlyDate) : group
     const chosen = [...selected.dates]
     setDraft({ role: editRole, kind: group.kind, staffId: group.staffId, from: chosen[0], until: chosen.at(-1)!, days: [...new Set(chosen.map(weekday))], exactDates: chosen,
@@ -178,7 +177,7 @@ export function StaffShiftsPage({ initialStaffId = '' }: { initialStaffId?: stri
   }
   async function deactivate(group: ScheduleGroup) {
     if (section === 'rooms' || busy || !canWrite) return
-    if (group.recurringId) { setEditDate(group.dates[0]); setEditWeekday(weekday(group.dates[0])); setRecurringEditOpen(true); setRecurringId(group.recurringId); setRecurringClose(true); setDraft(null); return }
+    if (group.recurringId) { setEditDate(group.dates[0]); setEditWeekday(weekday(group.dates[0])); setView('assign'); setRecurringId(group.recurringId); setRecurringClose(true); setDraft(null); return }
     if (!window.confirm(`¿Desactivar las ${group.dates.length} fechas de este grupo? Se conservará el historial y se rechazarán conflictos con citas.`)) return
     setBusy(true); setError(''); setNotice('')
     try { await savePlanningSet(section, group.kind, { staff_id: group.staffId, active: false }, group.originals); setNotice('Programación desactivada; historial conservado.'); setDraft(null); setRevision(r => r + 1) }
@@ -198,7 +197,7 @@ export function StaffShiftsPage({ initialStaffId = '' }: { initialStaffId?: stri
     } catch (err) { setError(err instanceof Error ? err.message : 'No se pudo guardar el consultorio.') }
     finally { setBusy(false) }
   }
-  const recurringEditor = <RecurringJourneyForm key={`${recurringId ?? 'new'}-${employee}-${recurringClose}-${editWeekday}`} data={data} initialEmployee={employee} initialJourney={data.recurring_journeys?.find(j => j.id === recurringId)} initialRole={role} initialDeactivate={recurringClose} editWeekday={editWeekday} editDate={editDate} loading={loading} onBusy={setBusy} onRefresh={() => setRevision(r => r + 1)} onManage={manageRecurring} onSaved={(id, date) => { const person = data.staff.find(p => p.id === id); if (person?.category === 'doctor' || person?.category === 'recepcionista') setRole(person.category); setEmployee(id); setWeek(monday(date)); setRecurringId(null); setRecurringEditOpen(false); setEditWeekday(null); setView('schedule'); setNotice('Cambios guardados y verificados. Consulta el calendario actualizado.'); setRevision(r => r + 1) }} />
+  const recurringEditor = <RecurringJourneyForm key={`${recurringId ?? 'new'}-${employee}-${recurringClose}-${editWeekday}`} data={data} initialEmployee={employee} initialJourney={data.recurring_journeys?.find(j => j.id === recurringId)} initialRole={role} initialDeactivate={recurringClose} editWeekday={editWeekday} editDate={editDate} loading={loading} onBusy={setBusy} onRefresh={() => setRevision(r => r + 1)} onManage={manageRecurring} onCancel={() => { setRecurringId(null); setRecurringClose(false); setEditDate(null); setEditWeekday(null); setDraft(null); setView('schedule') }} onSaved={(id, date) => { const person = data.staff.find(p => p.id === id); if (person?.category === 'doctor' || person?.category === 'recepcionista') setRole(person.category); setEmployee(id); setWeek(monday(date)); setRecurringId(null); setEditWeekday(null); setView('schedule'); setNotice('Cambios guardados y verificados. Consulta el calendario actualizado.'); setRevision(r => r + 1) }} />
   return <div className="space-y-5"><p role="status" className="planning-live">{realtime.connected ? '● Horarios sincronizados en tiempo real' : '○ Reconectando: actualización de respaldo cada 30 segundos'}</p>
     <nav className="flex flex-wrap gap-2 rounded-xl border border-slate-200 bg-white p-2" aria-label="Secciones de programación">
       {(['schedule', 'assign', 'rooms'] as const).map((tab, i) => <button type="button" key={tab} disabled={busy} aria-pressed={view === tab} className={`${view === tab ? primary : secondary} flex-1 whitespace-nowrap`} onClick={() => switchView(tab)}>{['Consultar jornadas', 'Asignar jornada', 'Consultorios'][i]}</button>)}
@@ -206,7 +205,6 @@ export function StaffShiftsPage({ initialStaffId = '' }: { initialStaffId?: stri
     {error && <p role="alert" className="rounded-lg bg-rose-50 p-4 text-sm text-rose-800">{error}</p>}
     {notice && <p role="status" className="rounded-lg bg-emerald-50 p-4 text-sm text-emerald-800">{notice}</p>}
     {!canWrite && !loading && <p className="rounded-lg bg-amber-50 p-3 text-sm">La edición todavía no está habilitada.</p>}
-    {recurringEditOpen && <JourneyEditorDialog busy={busy} onClose={() => { setRecurringEditOpen(false);  }}>{recurringEditor}</JourneyEditorDialog>}
     {roomDraft && <JourneyEditorDialog title="Editar consultorio" busy={busy} onClose={() => setRoomDraft(null)}><Panel title={`Editar ${roomDraft.code}`}><form onSubmit={saveRoom} className="space-y-4"><fieldset disabled={busy} className="grid gap-4 sm:grid-cols-3"><label className={labelClass}>Consultorio<input required maxLength={40} className={input} value={roomDraft.code} onChange={e => setRoomDraft({ ...roomDraft, code: e.target.value })}/></label><label className={labelClass}>Piso<select className={input} value={roomDraft.floor} onChange={e => setRoomDraft({ ...roomDraft, floor: e.target.value })}><option value="">Piso sin asignar</option>{data.floors.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</select></label><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={roomDraft.active} onChange={e => setRoomDraft({ ...roomDraft, active: e.target.checked })}/>Activo</label></fieldset>{error && <p role="alert" className="text-sm text-rose-700">{error}</p>}<button className={primary} disabled={busy}>{busy ? 'Guardando?' : 'Guardar cambios'}</button></form></Panel></JourneyEditorDialog>}
     {section === 'rooms' ? <>
       <AssignedConsultingRooms data={data} loading={loading} canEdit={canWrite && !busy} onEdit={id => { const room = data.rooms.find(r => r.id === id); if (room) { setError(''); setRoomDraft({ id: room.id, version: room.version, code: room.code, floor: room.floor_id?.toString() ?? '', active: room.active }) } }} />
@@ -220,7 +218,7 @@ export function StaffShiftsPage({ initialStaffId = '' }: { initialStaffId?: stri
 
         {selectedPerson && <div className="staff-selected-person"><span><Icon name="patient" size={23} /></span><div><strong>{staffName(selectedPerson)}</strong><p>Código {selectedPerson.employee_code} · {section === 'doctor' ? 'Doctor' : 'Recepcionista'}{!selectedPerson.active ? ' · Inactivo' : ''}</p></div><div className="staff-selected-actions"><button className={secondary} disabled={!canWrite || busy || !selectedPerson.active} onClick={() => startForm('absence')}>Registrar ausencia</button></div></div>}
       </section>}
-      {view === 'assign' && !draft && !recurringEditOpen && recurringEditor}
+      {view === 'assign' && !draft && recurringEditor}
 
       {view === 'schedule' && <StaffWeekCalendar key={employee} data={data} person={selectedPerson} groups={groups} week={week} onWeek={setWeek} canEdit={canWrite && !loading} busy={busy} loading={loading} onEdit={edit} onEditWeekday={editRecurringDay} onEditComplete={() => { const journey = editableJourney(data.recurring_journeys ?? [], employee, staffToday()); if (journey) manageRecurring(journey) }} onDeactivate={group => void deactivate(group)} onCreate={date => startForm('shift', date)} onRefresh={() => setRevision(r => r + 1)} />}
       <div ref={formAnchor} className="scroll-mt-6">{view === 'assign' && draft && <Panel title={`${draft.originals.length ? 'Editar' : 'Crear'} ${draft.kind === 'absence' ? 'ausencia' : draft.kind === 'consultation' ? 'atención médica' : draft.role === 'doctor' ? 'jornada de doctor' : 'turno de recepcionista'}`} subtitle="Se guardan todas las fechas de la vista previa en una única operación.">
