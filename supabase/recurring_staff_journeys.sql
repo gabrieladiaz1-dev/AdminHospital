@@ -114,7 +114,7 @@ BEGIN
   CROSS JOIN LATERAL private.recurring_work(marker.valid_from::timestamp AT TIME ZONE 'America/El_Salvador',(marker.valid_from+1)::timestamp AT TIME ZONE 'America/El_Salvador',marker.staff_id)a
   CROSS JOIN LATERAL private.recurring_work(marker.valid_from::timestamp AT TIME ZONE 'America/El_Salvador',(marker.valid_from+1)::timestamp AT TIME ZONE 'America/El_Salvador',marker.staff_id)b
   WHERE a.journey_id<b.journey_id AND a.ends_at>now() AND tstzrange(a.starts_at,a.ends_at,'[)')&&tstzrange(b.starts_at,b.ends_at,'[)'))
- THEN RAISE EXCEPTION 'El cambio se superpone con la salida de la jornada nocturna anterior' USING ERRCODE='23P01'; END IF;
+ THEN RAISE EXCEPTION 'El cambio se superpone con otra versión de la jornada de este empleado en esa fecha. Elige una fecha efectiva igual o posterior al inicio de la jornada que editas.' USING ERRCODE='23P01'; END IF;
  IF EXISTS(SELECT 1 FROM public.staff_recurring_journeys j
   CROSS JOIN LATERAL private.recurring_work(j.valid_from::timestamp AT TIME ZONE 'America/El_Salvador',(j.valid_from+1)::timestamp AT TIME ZONE 'America/El_Salvador')w
   JOIN public.staff_recurring_journeys previous ON previous.id=w.journey_id
