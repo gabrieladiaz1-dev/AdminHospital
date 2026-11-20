@@ -162,7 +162,12 @@ export async function availableSlots(specialty: number, date: string, patientId:
   const ids = new Set((doctors ?? []).map(d => d.doctor_id))
   const from = `${date}T00:00:00-06:00`
   const until = new Date(new Date(from).getTime() + 86400000).toISOString()
-  const slots = await receptionRpc<Slot[]>('get_medical_availability', { p_from: from, p_until: until, ...(doctorId ? { p_doctor: doctorId } : {}) })
+  // Prefer the server filter that also checks the specialty enabled in each day's journey.
+  const slots = await receptionRpc<Slot[]>('reception_specialty_slots', { p_specialty: specialty, p_from: from, p_until: until, ...(doctorId ? { p_doctor: doctorId } : {}) })
+    .catch(error => {
+      if (!['PGRST202', '42883'].includes((error as { code?: string }).code ?? '')) throw error
+      return receptionRpc<Slot[]>('get_medical_availability', { p_from: from, p_until: until, ...(doctorId ? { p_doctor: doctorId } : {}) })
+    })
   const { data: booked, error: bookedError } = await client().from('appointments').select('doctor_id,consulting_room_id,patient_id,starts_at,ends_at').lt('starts_at', until).gt('ends_at', from).in('status', ['programada', 'confirmada', 'en_atencion'])
   if (bookedError) throw Object.assign(new Error(bookedError.message), { code: bookedError.code })
   return availablePatientSlots(slots, booked ?? [], ids, patientId, Date.now(), doctorId)
