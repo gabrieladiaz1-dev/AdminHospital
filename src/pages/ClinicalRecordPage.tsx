@@ -1,3 +1,4 @@
+import { userMessage } from '../lib/userError'
 import { useEffect, useState } from 'react'
 import { Icon } from '../components/Icon'
 import {
@@ -333,7 +334,7 @@ export function ClinicalRecordPage({
       setStudyCatalogError('')
     }).catch((loadError: unknown) => {
       if (!active) return
-      const message = loadError instanceof Error ? loadError.message : 'No se pudieron cargar los catálogos clínicos.'
+      const message = userMessage(loadError, 'No se pudieron cargar los catálogos clínicos.')
       setCatalogError(message)
       setStudyCatalogError(message)
     })
@@ -375,7 +376,7 @@ export function ClinicalRecordPage({
       setPrescription({ ...prescription, dose: '', instructions: '' })
       setRefreshVersion((version) => version + 1)
     } catch (saveError: unknown) {
-      setPrescriptionError(saveError instanceof Error ? saveError.message : 'No se pudo emitir la receta.')
+      setPrescriptionError(userMessage(saveError, 'No se pudo emitir la receta.'))
     } finally {
       setSavingPrescription(false)
     }
@@ -401,7 +402,7 @@ export function ClinicalRecordPage({
       setShowObservationForm(false)
       setRefreshVersion((version) => version + 1)
     } catch (saveError: unknown) {
-      setObservationError(saveError instanceof Error ? saveError.message : 'No se pudo guardar la observación.')
+      setObservationError(userMessage(saveError, 'No se pudo guardar la observación.'))
     } finally {
       setSavingObservation(false)
     }
@@ -425,7 +426,7 @@ export function ClinicalRecordPage({
       setShowStudyForm(false)
       setRefreshVersion((version) => version + 1)
     } catch (saveError: unknown) {
-      setStudyError(saveError instanceof Error ? saveError.message : 'No se pudo solicitar el estudio.')
+      setStudyError(userMessage(saveError, 'No se pudo solicitar el estudio.'))
     } finally {
       setSavingStudy(false)
     }

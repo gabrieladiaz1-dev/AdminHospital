@@ -1,3 +1,4 @@
+import { userMessage } from './userError'
 import { receptionRpc } from './reception'
 export { institutionMapUrl } from './institutionMap'
 
@@ -18,4 +19,4 @@ export const readInstitution = () => receptionRpc<Institution | null>('panel_ins
 export const readPreferences = () => receptionRpc<PanelPreferences>('my_panel_preferences', {})
 export const readNotifications = (offset = 0) => receptionRpc<PanelNotifications>('my_panel_notifications', { p_offset: offset })
 export const markNotificationRead = (id: string | null = null) => receptionRpc('read_panel_notification', { p_id: id })
-export const panelError = (e: unknown) => e instanceof Error ? e.message : 'No se pudo completar la operación. Intenta nuevamente.'
+export const panelError = (e: unknown) => userMessage(e)

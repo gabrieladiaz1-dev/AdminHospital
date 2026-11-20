@@ -1,3 +1,4 @@
+import { userMessage } from '../lib/userError'
 import { HospitalPatientHeader } from '../components/HospitalPatientHeader'
 import { HospitalDate, HospitalFilterPills } from '../components/HospitalPresentation'
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
@@ -9,7 +10,7 @@ import './HospitalizationPage.css'
 
 const primary = 'hospital-primary'
 const field = 'hospital-field'
-const errorText = (e: unknown) => e instanceof Error ? e.message : 'No se pudo completar la operación. Actualiza e intenta nuevamente.'
+const errorText = (e: unknown) => userMessage(e, 'No se pudo completar la operación. Actualiza e intenta nuevamente.')
 const sections = ['Solicitudes de ingreso', 'Habitaciones y camas', 'Pacientes hospitalizados', 'Altas y salidas'] as const
 type Section = typeof sections[number]
 

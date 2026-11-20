@@ -1,3 +1,4 @@
+import { isUserFacing } from './userError'
 import { supabase } from './supabase'
 
 export interface Employee {
@@ -37,26 +38,26 @@ export interface EmployeeMutationResult { success: boolean; employee?: Employee;
 export interface PendingEmployee { id: string; email: string; createdAt: string; payload: Omit<EmployeeInput, 'requestId'> }
 
 export async function employeeRequest<T>(action: string, data: object = {}): Promise<T> {
-  if (!supabase) throw new Error('Falta configurar Supabase.')
+  if (!supabase) throw new Error('El sistema no está configurado correctamente. Contacta al administrador.')
   const session = await supabase.auth.getSession()
-  if (session.error) throw new Error(`No se pudo renovar la sesión ADMIN: ${session.error.message}`)
-  if (!session.data.session) throw Object.assign(new Error('La sesión ADMIN falta o venció. Inicia sesión para registrar personal. [AUTH_SESSION_MISSING]'), { code: 'AUTH_SESSION_MISSING' })
+  if (session.error) throw Object.assign(new Error("Tu sesión venció. Inicia sesión nuevamente."), { code: "AUTH_SESSION_MISSING" })
+  if (!session.data.session) throw Object.assign(new Error('Tu sesión venció. Inicia sesión nuevamente para gestionar personal.'), { code: 'AUTH_SESSION_MISSING' })
   const result = await supabase.functions.invoke('manage-employees', { body: { action, ...data }, timeout: 45000 })
   if (result.error) {
     const status = result.error.context?.status
     let code = status ? `HTTP_${status}` : 'NETWORK_ERROR'
-    let message = status ? `manage-employees rechazó la operación «${action}» (HTTP ${status}).` : 'No llegó respuesta de manage-employees. Comprueba la conexión; no se confirmó ningún resultado.'
+    let message = status ? "El servicio de personal no pudo completar la operación. Intenta nuevamente." : 'No hay conexión con el servidor. Comprueba tu conexión; no se confirmó ningún resultado.'
     try {
       const body = await result.error.context.json()
-      message = typeof body.error === 'string' ? body.error : typeof body.message === 'string' ? body.message : message
+      { const text = typeof body.error === "string" ? body.error : typeof body.message === "string" ? body.message : ""; if (text && isUserFacing(text)) message = text }
       code = body.code || code
-      if (body.code === 'OPERATION_NOT_SUPPORTED' || message === 'Operación inválida.') message = 'La versión conectada de manage-employees no admite esta acción. Es necesario actualizar el backend antes de continuar.'
-      if (action === 'create' && message === 'Completa los campos requeridos con valores válidos.') message = 'manage-employees rechazó un campo requerido sin identificarlo. El formulario no debe enviar código ni contraseña: los asigna el servidor. La función publicada debe actualizarse para admitir este registro automático e indicar el campo rechazado.'
+      if (body.code === 'OPERATION_NOT_SUPPORTED' || message === 'Operación inválida.') message = 'Esta acción no está disponible en este momento. Contacta al administrador del sistema.'
+      if (action === 'create' && message === 'Completa los campos requeridos con valores válidos.') message = 'Algún campo obligatorio no es válido. Revisa el formulario e intenta nuevamente.'
     } catch { /* Network or gateway failure. */ }
-    if (status === 401) message = /jwt/i.test(message) ? 'El servicio rechazó el JWT de la sesión ADMIN. Inicia sesión nuevamente; si continúa, hay que revisar la configuración de autenticación de manage-employees.' : `La sesión ADMIN no fue aceptada. ${message}`
-    if (status === 403) message = `El servicio no autorizó esta operación para tu cuenta. ${message}`
-    throw Object.assign(new Error(`${message} [manage-employees/${action} · ${code}]`), { code, status })
+    if (status === 401) message = "Tu sesión venció. Inicia sesión nuevamente."
+    if (status === 403) message = "Tu cuenta no tiene autorización para esta operación."
+    throw Object.assign(new Error(message), { code, status })
   }
-  if (result.data?.error) throw new Error(`manage-employees/${action}: ${typeof result.data.error === 'string' ? result.data.error : 'El servicio devolvió un error sin descripción.'}`)
+  if (result.data?.error) throw new Error(typeof result.data.error === "string" && isUserFacing(result.data.error) ? result.data.error : "El servicio de personal no pudo completar la operación. Intenta nuevamente.")
   return result.data as T
 }

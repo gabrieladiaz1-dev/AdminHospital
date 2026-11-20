@@ -1,3 +1,4 @@
+import { userMessage } from '../lib/userError'
 import { usePlanningRealtime } from '../lib/usePlanningRealtime'
 import { AgendaDatePicker } from './AgendaDatePicker'
 import { useEffect, useState, type ReactNode } from 'react'
@@ -27,7 +28,7 @@ export function ReceptionAgenda({ specialties, renderRequest }: { specialties: {
   useEffect(() => {
     let active = true
     setBusy(true); setError(''); setRows([]); setRequests([])
-    Promise.all([loadAgenda(date), loadRequests()]).then(([appointments, pending]) => { if (active) { setRows(appointments); setRequests(pending.items.filter(r => r.requester_id)); setMore(pending.hasMore) } }).catch(e => { if (active) setError(e.message) }).finally(() => { if (active) setBusy(false) })
+    Promise.all([loadAgenda(date), loadRequests()]).then(([appointments, pending]) => { if (active) { setRows(appointments); setRequests(pending.items.filter(r => r.requester_id)); setMore(pending.hasMore) } }).catch(e => { if (active) setError(userMessage(e)) }).finally(() => { if (active) setBusy(false) })
     return () => { active = false }
   }, [date, revision])
   const counts = agendaCounts(rows)
@@ -50,6 +51,6 @@ function WalkinBooking({ specialties, onSaved }: { specialties: { id: number; na
   const [identity, setIdentity] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  async function select(p: ReceptionPatient) { setPatient(p); setIdentity(false); setCode(''); setPhase('verify'); setBusy(true); setError(''); try { setCode(await recordCode(p.id) ?? '') } catch (e) { setError(e instanceof Error ? e.message : 'No se pudo comprobar el expediente.') } finally { setBusy(false) } }
+  async function select(p: ReceptionPatient) { setPatient(p); setIdentity(false); setCode(''); setPhase('verify'); setBusy(true); setError(''); try { setCode(await recordCode(p.id) ?? '') } catch (e) { setError(userMessage(e, 'No se pudo comprobar el expediente.')) } finally { setBusy(false) } }
   return <div className="agenda-card"><h3>Nueva cita presencial</h3><p>1. Busca al paciente · 2. Verifica su expediente · 3. Programa la cita</p>{phase === 'search' && <ReceptionPatientDirectory onSelectPatient={p => void select(p)} onStartRegistration={p => { if (p) void select(p); else { setPatient(null); setPhase('record') } }} />}{phase === 'verify' && patient && <><PatientCard patient={patient} code={code} />{busy ? <p role="status">Comprobando expediente…</p> : <p className={code ? 'agenda-success' : 'agenda-warning'}>{code ? `Tiene expediente: ${code}` : 'Sin expediente. Completa su registro antes de programar.'}</p>}{error && <p role="alert" className="agenda-warning">{error}</p>}<IdentityCheck checked={identity} onChange={setIdentity} disabled={busy} /><button className="agenda-primary" disabled={!identity || busy || Boolean(error)} onClick={() => setPhase(code ? 'schedule' : 'record')}>{code ? 'Continuar a los horarios' : 'Crear expediente'}</button><button className="agenda-back" onClick={() => setPhase('search')}>Buscar otro paciente</button></>}{phase === 'record' && <ReceptionRecordPreparation patient={patient} onCancel={() => setPhase('search')} onReady={(p, c) => { setPatient(p); setCode(c); setPhase('schedule') }} />}{phase === 'schedule' && patient && <ReceptionAppointmentScheduler patient={patient} code={code} specialties={specialties} onSaved={onSaved} />}</div>
 }

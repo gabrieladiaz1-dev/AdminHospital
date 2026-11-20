@@ -1,3 +1,4 @@
+import { userMessage } from '../lib/userError'
 import { useEffect, useState, type ReactNode } from 'react'
 import { readMyAccess } from '../lib/api'
 
@@ -12,7 +13,7 @@ export function AdminGate({ children, onSignOut }: { children: ReactNode; onSign
         const allowed = data.isAdministrator === true || data.roles.some(role => role.code === 'recepcionista') || data.laboratory?.can_view === true
         if (active) setState({ loading: false, allowed, error: '' })
       } catch (error) {
-        if (active) setState({ loading: false, allowed: false, error: error instanceof Error ? error.message : 'No se pudieron verificar los permisos en Hospital Moviles.' })
+        if (active) setState({ loading: false, allowed: false, error: userMessage(error, 'No se pudieron verificar los permisos en Hospital Moviles.') })
       }
     }
     void verify()

@@ -1,3 +1,4 @@
+import { userMessage } from '../lib/userError'
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { FacilityPicker } from '../components/FacilityPicker'
 import { Icon } from '../components/Icon'
@@ -123,7 +124,7 @@ export function PatientsPage({ onViewChart }: { onViewChart: (patientId: string,
     readMyAccess().then((access) => {
       if (active) setUserAccess(access)
     }).catch((loadError: unknown) => {
-      if (active) setAccessError(loadError instanceof Error ? loadError.message : 'No se pudieron verificar los permisos del usuario.')
+      if (active) setAccessError(userMessage(loadError, 'No se pudieron verificar los permisos del usuario.'))
     }).finally(() => {
       if (active) setAccessLoading(false)
     })
@@ -141,7 +142,7 @@ export function PatientsPage({ onViewChart }: { onViewChart: (patientId: string,
       if (active) setResponse({
         key: requestKeyForPage,
         records: [],
-        error: loadError instanceof Error ? loadError.message : 'No se pudo cargar el directorio de pacientes.',
+        error: userMessage(loadError, 'No se pudo cargar el directorio de pacientes.'),
       })
     })
     return () => {
@@ -161,7 +162,7 @@ export function PatientsPage({ onViewChart }: { onViewChart: (patientId: string,
     }).catch((loadError: unknown) => {
       if (active) setCatalogResult({
         facilityId,
-        error: loadError instanceof Error ? loadError.message : 'No se pudieron cargar departamentos y niveles de triage.',
+        error: userMessage(loadError, 'No se pudieron cargar departamentos y niveles de triage.'),
       })
     })
     return () => {
@@ -183,7 +184,7 @@ export function PatientsPage({ onViewChart }: { onViewChart: (patientId: string,
       setAppointmentSpecialties(specialties)
       setAppointmentSpecialtyId(specialties[0]?.id ?? '')
     }).catch((loadError: unknown) => {
-      if (active) setAppointmentSpecialtiesError(loadError instanceof Error ? loadError.message : 'No se pudieron cargar las especialidades.')
+      if (active) setAppointmentSpecialtiesError(userMessage(loadError, 'No se pudieron cargar las especialidades.'))
     }).finally(() => {
       if (active) setAppointmentSpecialtiesLoading(false)
     })
@@ -206,7 +207,7 @@ export function PatientsPage({ onViewChart }: { onViewChart: (patientId: string,
         facilityId,
         departmentId: selectedDepartmentId,
         rows: [],
-        error: loadError instanceof Error ? loadError.message : 'No se pudieron cargar los médicos.',
+        error: userMessage(loadError, 'No se pudieron cargar los médicos.'),
       })
     })
     return () => {
@@ -287,7 +288,7 @@ export function PatientsPage({ onViewChart }: { onViewChart: (patientId: string,
       setReloadToken((current) => current + 1)
       setActionSuccess('Paciente registrado y solicitud agregada a pendientes de asignación.')
     } catch (error) {
-      setActionError(getAuthorizationErrorMessage(error, 'patients.write y appointments.all') ?? (error instanceof Error ? error.message : 'No se pudo registrar al paciente y su solicitud.'))
+      setActionError(getAuthorizationErrorMessage(error, 'patients.write y appointments.all') ?? (userMessage(error, 'No se pudo registrar al paciente y su solicitud.')))
     } finally {
       setSubmitting(false)
     }
@@ -314,7 +315,7 @@ export function PatientsPage({ onViewChart }: { onViewChart: (patientId: string,
       setReloadToken((current) => current + 1)
       setActionSuccess('Ingreso registrado correctamente.')
     } catch (error) {
-      setActionError(getAuthorizationErrorMessage(error, 'admissions.write') ?? (error instanceof Error ? error.message : 'No se pudo registrar el ingreso.'))
+      setActionError(getAuthorizationErrorMessage(error, 'admissions.write') ?? (userMessage(error, 'No se pudo registrar el ingreso.')))
     } finally {
       setSubmitting(false)
     }
@@ -348,7 +349,7 @@ export function PatientsPage({ onViewChart }: { onViewChart: (patientId: string,
           </>}
         </div>
       </section>
-      <Panel title="Directorio de pacientes" subtitle="Resultados autorizados por Supabase para la institución seleccionada">
+      <Panel title="Directorio de pacientes" subtitle="Resultados autorizados para la institución seleccionada">
         {loading && <p className="py-6 text-center text-[10px] text-slate-500" role="status">Cargando pacientes...</p>}
         {currentResponse?.error && <p className="rounded-md bg-rose-50 px-3 py-2 text-[10px] text-rose-800" role="alert">{currentResponse.error}</p>}
         {!loading && !currentResponse?.error && currentResponse && (

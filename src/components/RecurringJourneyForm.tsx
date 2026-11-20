@@ -1,3 +1,4 @@
+import { userMessage } from '../lib/userError'
 import { useRef, useState } from 'react'
 import { weekday, addDays } from '../lib/planningDates'
 import { planningWritesEnabled, saveRecurringJourney, staffName, type PlanningData, type RecurringJourney } from '../lib/planning'
@@ -111,7 +112,7 @@ export function RecurringJourneyForm({ data, initialEmployee = '', initialJourne
     } catch (e) {
       const code = (e as { code?: string }).code ?? ''
       if (/^(22|23|40|42)/.test(code) || ['P0001', 'PGRST202', '42883'].includes(code)) { setPending(null); operation.current = crypto.randomUUID() }
-      setError(e instanceof Error ? e.message : 'No se confirmó el guardado. Reintenta con los mismos datos.')
+      setError(userMessage(e, 'No se confirmó el guardado. Reintenta con los mismos datos.'))
     } finally { lock.current = false; setBusy(false); onBusy(false) }
   }
   return <form className="recurring-form" data-step={step} noValidate onSubmit={e => { e.preventDefault(); if (step < 5) nextStep(); else void save() }}><header className="recurring-form-heading"><span><Icon name="calendar" size={29} /></span><div><small>JORNADA HABITUAL DEL PERSONAL</small><h2>{initialJourney ? scope === 'day' ? 'Editar una fecha' : editWeekday === null ? 'Editar jornada completa' : `Editar ${dayNames[editWeekday].toLowerCase()}` : 'Asignar jornada fija'}</h2>{initialJourney && scope === 'weekday' && editWeekday !== null && <p role="status">Este cambio se repetirá todos los {repeatedDays[editWeekday]} futuros desde la fecha efectiva. Los otros días conservarán sus horarios.</p>}{initialJourney && editWeekday === null && <p>Los horarios que guardes se aplicarán a todos los días marcados y sustituirán su configuración actual desde la fecha efectiva.</p>}<p>{scope === 'day' ? 'Solo se sustituye esta fecha. Las demás conservan su horario.' : 'Se repite cada semana durante su vigencia. Te guiaremos paso a paso. Al final podrás revisar todo antes de guardar.'}</p></div>{onCancel && <button type="button" className="recurring-cancel recurring-header-back" disabled={busy} onClick={onCancel}>Volver al horario</button>}</header>

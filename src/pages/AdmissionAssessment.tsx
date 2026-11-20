@@ -1,3 +1,4 @@
+import { userMessage } from '../lib/userError'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { displayTime, receptionRpc } from '../lib/reception'
 import { HospitalizationPage } from './HospitalizationPage'
@@ -10,8 +11,8 @@ export function AdmissionAssessment({ patientId }: { patientId: string }) {
   const [busy, setBusy] = useState(false); const [error, setError] = useState(''); const [admission, setAdmission] = useState<string | null>(null)
   const [offset, setOffset] = useState(0); const [notice, setNotice] = useState(''); const lock = useRef(false); const key = useRef(crypto.randomUUID())
   const refresh = useCallback(async () => { const result = await receptionRpc<Context>('admission_assessment_context', { p_patient: patientId, p_offset: offset }); setData(result) }, [patientId, offset])
-  useEffect(() => { let active = true; receptionRpc<Context>('admission_assessment_context', { p_patient: patientId, p_offset: offset }).then(d => { if (active) setData(d) }).catch(e => { if (active) setError(e.message) }); return () => { active = false } }, [patientId, offset])
-  async function run(work: () => Promise<void>) { if (lock.current) return; lock.current = true; setBusy(true); setError(''); try { await work() } catch (e) { setError(e instanceof Error ? e.message : 'No se pudo completar la operación.') } finally { lock.current = false; setBusy(false) } }
+  useEffect(() => { let active = true; receptionRpc<Context>('admission_assessment_context', { p_patient: patientId, p_offset: offset }).then(d => { if (active) setData(d) }).catch(e => { if (active) setError(userMessage(e)) }); return () => { active = false } }, [patientId, offset])
+  async function run(work: () => Promise<void>) { if (lock.current) return; lock.current = true; setBusy(true); setError(''); try { await work() } catch (e) { setError(userMessage(e, 'No se pudo completar la operación.')) } finally { lock.current = false; setBusy(false) } }
   function changed() { key.current = crypto.randomUUID(); setNotice('') }
   if (admission) return <div className="space-y-4"><button className="walkin-secondary" onClick={() => setAdmission(null)}>Volver a valoraciones</button><HospitalizationPage initialAdmissionId={admission} /></div>
   return <section className="walkin-card space-y-5"><div className="walkin-section-head"><div><h3>Valoración presencial para hospitalización</h3><p>Asigna un médico para valorar este expediente. No crea una cita ni autoriza el ingreso.</p></div><button className="walkin-secondary" disabled={busy} onClick={() => void run(refresh)}>Actualizar decisiones</button></div>

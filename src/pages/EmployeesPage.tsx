@@ -1,3 +1,4 @@
+import { userMessage } from '../lib/userError'
 import { advanceFormOnEnter } from '../lib/formKeyboard'
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { Panel } from '../components/ui'
@@ -70,7 +71,7 @@ export function EmployeesPage({ onSchedule }: { onSchedule?: (staffId?: string) 
         if (!active) return
         setEmployees(directory.employees); setTotal(directory.total); setLoadError('')
       }).catch((err: unknown) => {
-        if (active) { setEmployees([]); setLoadError(err instanceof Error ? err.message : 'No se pudo cargar el personal.') }
+        if (active) { setEmployees([]); setLoadError(userMessage(err, 'No se pudo cargar el personal.')) }
       }).finally(() => { if (active) setLoading(false) })
     }, 250)
     return () => { active = false; window.clearTimeout(timer) }
@@ -82,7 +83,7 @@ export function EmployeesPage({ onSchedule }: { onSchedule?: (staffId?: string) 
     employeeRequest<Employee>('detail', { id: detailId }).then(employee => {
       if (active) setDetail(current => current?.id === detailId ? employee : current)
     }).catch((err: unknown) => {
-      if (active) setError(err instanceof Error ? err.message : 'No se pudo actualizar la ficha del empleado.')
+      if (active) setError(userMessage(err, 'No se pudo actualizar la ficha del empleado.'))
     })
     return () => { active = false }
   }, [detailId, realtime.revision, view])
@@ -91,10 +92,10 @@ export function EmployeesPage({ onSchedule }: { onSchedule?: (staffId?: string) 
     let active = true
     setCatalogLoading(true)
     employeeRequest<EmployeeCatalogs>('catalogs')
-      .then(options => { if (!Array.isArray(options?.specialties)) throw new Error('manage-employees/catalogs devolvió un catálogo incompatible.'); if (active) { setCatalogs({ ...options, specialties: options.specialties.map(item => ({ ...item, id: String(item.id) })) }); setCatalogError('') } })
-      .catch((err: unknown) => { if (active) setCatalogError(err instanceof Error ? err.message : 'No se pudieron cargar los datos de registro.') })
+      .then(options => { if (!Array.isArray(options?.specialties)) throw new Error('No se pudieron cargar los datos de registro.'); if (active) { setCatalogs({ ...options, specialties: options.specialties.map(item => ({ ...item, id: String(item.id) })) }); setCatalogError('') } })
+      .catch((err: unknown) => { if (active) setCatalogError(userMessage(err, 'No se pudieron cargar los datos de registro.')) })
       .finally(() => { if (active) setCatalogLoading(false) })
-    employeeRequest<PendingEmployee[]>('pending').then(unfinished => { if (!Array.isArray(unfinished)) throw new Error('manage-employees/pending devolvió una respuesta incompatible.'); if (active) { setPending(unfinished); setPendingError('') } }).catch((err: unknown) => { if (active) setPendingError(err instanceof Error ? err.message : 'No se pudieron consultar las altas pendientes.') })
+    employeeRequest<PendingEmployee[]>('pending').then(unfinished => { if (!Array.isArray(unfinished)) throw new Error('No se pudieron consultar las altas pendientes.'); if (active) { setPending(unfinished); setPendingError('') } }).catch((err: unknown) => { if (active) setPendingError(userMessage(err, 'No se pudieron consultar las altas pendientes.')) })
     return () => { active = false }
   }, [revision])
 
@@ -120,7 +121,7 @@ export function EmployeesPage({ onSchedule }: { onSchedule?: (staffId?: string) 
       const current = await employeeRequest<Employee>('detail', { id: employee.id })
       setView('register'); setEditing(current); setEditingFromDetail(fromDetail); setDetail(null)
       setForm({ ...emptyForm(), ...current, city: current.city ?? '', phone: formatEmployeePhone(current.phone ?? ''), birthDate: current.birthDate ?? '' })
-    } catch (err) { setError(err instanceof Error ? err.message : 'No se pudo cargar el perfil para editar.') }
+    } catch (err) { setError(userMessage(err, 'No se pudo cargar el perfil para editar.')) }
     finally { setBusy(false) }
   }
   function nextField(event: KeyboardEvent<HTMLFormElement>) { advanceFormOnEnter(event) }
@@ -164,7 +165,7 @@ export function EmployeesPage({ onSchedule }: { onSchedule?: (staffId?: string) 
       if (result?.credentials) setCredentials({ ...result.credentials, employeeCode: result.employeeCode, name: `${form.givenNames.trim()} ${form.familyNames.trim()}`, role: roleName(form.role), active: form.active })
       setForm(emptyForm()); setEditing(null); setView(editing ? 'directory' : 'register')
     } catch (err) {
-      setError(updateReadbackFailed ? 'El servicio recibió la edición, pero no se pudo verificar el resultado. Abre el directorio y pulsa Actualizar antes de editar nuevamente.' : err instanceof Error ? err.message : 'No se pudo guardar el empleado.')
+      setError(updateReadbackFailed ? 'El servicio recibió la edición, pero no se pudo verificar el resultado. Abre el directorio y pulsa Actualizar antes de editar nuevamente.' : userMessage(err, 'No se pudo guardar el empleado.'))
     } finally { saveLock.current = false; setBusy(false); setRevision(r => r + 1) }
   }
   async function run(action: 'recover' | 'detail', data: object) {
@@ -175,7 +176,7 @@ export function EmployeesPage({ onSchedule }: { onSchedule?: (staffId?: string) 
       if (result.credentials && result.employee) setCredentials({ ...result.credentials, employeeCode: result.employeeCode, name: `${result.employee.givenNames} ${result.employee.familyNames}`, role: roleName(result.employee.role), active: result.employee.active })
       if (action === 'detail') { setDetail(result) }
       else { setNotice('Alta completada correctamente.'); setRevision(r => r + 1) }
-    } catch (err) { setError(err instanceof Error ? err.message : 'No se pudo completar la operación.') }
+    } catch (err) { setError(userMessage(err, 'No se pudo completar la operación.')) }
     finally { setBusy(false) }
   }
 
@@ -183,7 +184,7 @@ export function EmployeesPage({ onSchedule }: { onSchedule?: (staffId?: string) 
     if (busy) return
     setBusy(true); setError(''); setStateError('')
     try { setStateEmployee(await employeeRequest<Employee>('detail', { id: employee.id })) }
-    catch (err) { setError(err instanceof Error ? err.message : 'No se pudieron consultar las asignaciones del empleado.') }
+    catch (err) { setError(userMessage(err, 'No se pudieron consultar las asignaciones del empleado.')) }
     finally { setBusy(false) }
   }
 
@@ -198,7 +199,7 @@ export function EmployeesPage({ onSchedule }: { onSchedule?: (staffId?: string) 
       applyEmployee(confirmed)
       setNotice(`${confirmed.givenNames} ${confirmed.familyNames}: cuenta ${confirmed.active ? 'reactivada' : 'desactivada'}.`)
       setSavedStaffId(undefined); setStateEmployee(null); setRevision(current => current + 1)
-    } catch (err) { setStateError(err instanceof Error ? err.message : 'No se pudo actualizar el acceso del empleado.') }
+    } catch (err) { setStateError(userMessage(err, 'No se pudo actualizar el acceso del empleado.')) }
     finally { setBusy(false) }
   }
 

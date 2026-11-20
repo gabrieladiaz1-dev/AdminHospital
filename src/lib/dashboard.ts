@@ -5,7 +5,7 @@ export interface DashboardCounts {
   discharges: number | null; staff: number | null; errors: string[]
 }
 export async function readDashboardCounts(): Promise<DashboardCounts> {
-  if (!supabase) throw new Error('Falta configurar Supabase.')
+  if (!supabase) throw new Error('El sistema no está configurado correctamente. Contacta al administrador.')
   const results = await Promise.allSettled([
     supabase.from('appointment_requests').select('id', { count: 'exact', head: true }).eq('status', 'pendiente'),
     supabase.from('appointment_requests').select('id', { count: 'exact', head: true }).eq('status', 'en_revision'),

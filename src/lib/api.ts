@@ -129,15 +129,15 @@ export interface LaboratoryTest {
 
 export function getAuthorizationErrorMessage(error: unknown, permission: string): string | null {
   if (!error || typeof error !== 'object' || !('code' in error) || error.code !== '42501') return null
-  return 'Hospital Moviles rechaz? la operaci?n. Revisa el permiso: ' + permission
+  return (void permission, 'Tu cuenta no tiene autorización para esta operación. Contacta al administrador.')
 }
 
 export async function readFacilities(): Promise<Facility[]> {
-  throw new Error('La conexi?n Auth de Hospital Moviles est? configurada. Falta verificar su esquema y conectar este m?dulo de datos.')
+  throw new Error('Este módulo no está disponible en este momento.')
 }
 
 export async function readMyAccess(): Promise<UserAccess> {
-  if (!supabase) throw new Error('Falta configurar Supabase.')
+  if (!supabase) throw new Error('El sistema no está configurado correctamente. Contacta al administrador.')
   const { data: identity, error: identityError } = await supabase.auth.getUser()
   if (identityError || !identity.user) throw new Error('Inicia sesión nuevamente.')
   const [{ data, error }, laboratory] = await Promise.all([supabase.from('user_roles').select('role').eq('user_id', identity.user.id).eq('active', true), supabase.rpc('my_laboratory_access')])
@@ -147,15 +147,15 @@ export async function readMyAccess(): Promise<UserAccess> {
 }
 
 export async function readPendingAppointmentRequests(_facilityId: string): Promise<AppointmentRequest[]> {
-  throw new Error('La conexi?n Auth de Hospital Moviles est? configurada. Falta verificar su esquema y conectar este m?dulo de datos.')
+  throw new Error('Este módulo no está disponible en este momento.')
 }
 
 export async function readDoctorAppointments(_facilityId: string, _from: string, _to: string): Promise<DoctorAppointment[]> {
-  throw new Error('La conexi?n Auth de Hospital Moviles est? configurada. Falta verificar su esquema y conectar este m?dulo de datos.')
+  throw new Error('Este módulo no está disponible en este momento.')
 }
 
 export async function readDoctorAvailability(_facilityId: string, _physicianId: string, _date: string): Promise<AppointmentTimeBlock[]> {
-  throw new Error('La conexi?n Auth de Hospital Moviles est? configurada. Falta verificar su esquema y conectar este m?dulo de datos.')
+  throw new Error('Este módulo no está disponible en este momento.')
 }
 
 export async function scheduleAppointmentRequest(_input: {
@@ -167,7 +167,7 @@ export async function scheduleAppointmentRequest(_input: {
   expectedVersion: number
   requestKey: string
 }): Promise<void> {
-  throw new Error('La conexi?n Auth de Hospital Moviles est? configurada. Falta verificar su esquema y conectar este m?dulo de datos.')
+  throw new Error('Este módulo no está disponible en este momento.')
 }
 
 export async function searchManagedUsers(
@@ -175,23 +175,23 @@ export async function searchManagedUsers(
   _query: string,
   _after: string | null = null,
 ): Promise<{ users: ManagedUser[]; after: string | null }> {
-  throw new Error('La conexi?n Auth de Hospital Moviles est? configurada. Falta verificar su esquema y conectar este m?dulo de datos.')
+  throw new Error('Este módulo no está disponible en este momento.')
 }
 
 export async function readSystemRoles(_facilityId: string): Promise<SystemRole[]> {
-  throw new Error('La conexi?n Auth de Hospital Moviles est? configurada. Falta verificar su esquema y conectar este m?dulo de datos.')
+  throw new Error('Este módulo no está disponible en este momento.')
 }
 
 export async function setUserRoles(_profileId: string, _facilityId: string, _roleIds: string[]): Promise<void> {
-  throw new Error('La conexi?n Auth de Hospital Moviles est? configurada. Falta verificar su esquema y conectar este m?dulo de datos.')
+  throw new Error('Este módulo no está disponible en este momento.')
 }
 
 export async function readPatientChart(_patientId: string, _isDoctor: boolean): Promise<PatientChart> {
-  throw new Error('La conexi?n Auth de Hospital Moviles est? configurada. Falta verificar su esquema y conectar este m?dulo de datos.')
+  throw new Error('Este módulo no está disponible en este momento.')
 }
 
 export async function readPrescriptionCatalogs(): Promise<PrescriptionCatalogs> {
-  throw new Error('La conexi?n Auth de Hospital Moviles est? configurada. Falta verificar su esquema y conectar este m?dulo de datos.')
+  throw new Error('Este módulo no está disponible en este momento.')
 }
 
 export async function issuePrescription(_input: {
@@ -207,11 +207,11 @@ export async function issuePrescription(_input: {
   quantity: number | null
   requestKey: string
 }): Promise<void> {
-  throw new Error('La conexi?n Auth de Hospital Moviles est? configurada. Falta verificar su esquema y conectar este m?dulo de datos.')
+  throw new Error('Este módulo no está disponible en este momento.')
 }
 
 export async function readLaboratoryTests(): Promise<LaboratoryTest[]> {
-  throw new Error('La conexi?n Auth de Hospital Moviles est? configurada. Falta verificar su esquema y conectar este m?dulo de datos.')
+  throw new Error('Este módulo no está disponible en este momento.')
 }
 
 export async function requestLaboratoryStudy(_input: {
@@ -220,7 +220,7 @@ export async function requestLaboratoryStudy(_input: {
   instructions: string
   requestKey: string
 }): Promise<void> {
-  throw new Error('La conexi?n Auth de Hospital Moviles est? configurada. Falta verificar su esquema y conectar este m?dulo de datos.')
+  throw new Error('Este módulo no está disponible en este momento.')
 }
 
 export async function createClinicalNote(_input: {
@@ -231,23 +231,23 @@ export async function createClinicalNote(_input: {
   plan: string
   requestKey: string
 }): Promise<void> {
-  throw new Error('La conexi?n Auth de Hospital Moviles est? configurada. Falta verificar su esquema y conectar este m?dulo de datos.')
+  throw new Error('Este módulo no está disponible en este momento.')
 }
 
 export async function rejectAppointmentRequest(_requestId: string, _expectedVersion: number, _reason: string): Promise<void> {
-  throw new Error('La conexi?n Auth de Hospital Moviles est? configurada. Falta verificar su esquema y conectar este m?dulo de datos.')
+  throw new Error('Este módulo no está disponible en este momento.')
 }
 
 export async function readPatients(_facilityId: string, _query: string, _after: string | null): Promise<PatientRecord[]> {
-  throw new Error('La conexi?n Auth de Hospital Moviles est? configurada. Falta verificar su esquema y conectar este m?dulo de datos.')
+  throw new Error('Este módulo no está disponible en este momento.')
 }
 
 export async function readAdmissionCatalogs(_facilityId: string): Promise<{ departments: AdmissionDepartment[]; triageLevels: TriageLevel[] }> {
-  throw new Error('La conexi?n Auth de Hospital Moviles est? configurada. Falta verificar su esquema y conectar este m?dulo de datos.')
+  throw new Error('Este módulo no está disponible en este momento.')
 }
 
 export async function readAdmissionPhysicians(_facilityId: string, _departmentId: string): Promise<AdmissionPhysician[]> {
-  throw new Error('La conexi?n Auth de Hospital Moviles est? configurada. Falta verificar su esquema y conectar este m?dulo de datos.')
+  throw new Error('Este módulo no está disponible en este momento.')
 }
 
 export async function registerPatient(_input: {
@@ -258,7 +258,7 @@ export async function registerPatient(_input: {
   sex: 'female' | 'male' | 'intersex' | 'unknown'
   requestKey: string
 }): Promise<void> {
-  throw new Error('La conexi?n Auth de Hospital Moviles est? configurada. Falta verificar su esquema y conectar este m?dulo de datos.')
+  throw new Error('Este módulo no está disponible en este momento.')
 }
 
 export async function registerPatientWithAppointmentRequest(_input: {
@@ -274,7 +274,7 @@ export async function registerPatientWithAppointmentRequest(_input: {
   preferredEnd: string
   requestKey: string
 }): Promise<void> {
-  throw new Error('La conexi?n Auth de Hospital Moviles est? configurada. Falta verificar su esquema y conectar este m?dulo de datos.')
+  throw new Error('Este módulo no está disponible en este momento.')
 }
 
 export async function registerAdmission(_input: {
@@ -285,13 +285,13 @@ export async function registerAdmission(_input: {
   triageLevelId: string
   requestKey: string
 }): Promise<void> {
-  throw new Error('La conexi?n Auth de Hospital Moviles est? configurada. Falta verificar su esquema y conectar este m?dulo de datos.')
+  throw new Error('Este módulo no está disponible en este momento.')
 }
 
 export async function readHospitalOverview(_facilityId: string): Promise<HospitalOverview> {
-  throw new Error('La conexi?n Auth de Hospital Moviles est? configurada. Falta verificar su esquema y conectar este m?dulo de datos.')
+  throw new Error('Este módulo no está disponible en este momento.')
 }
 
 export async function readPublicView(_viewName: string): Promise<Record<string, unknown>[]> {
-  throw new Error('La conexi?n Auth de Hospital Moviles est? configurada. Falta verificar su esquema y conectar este m?dulo de datos.')
+  throw new Error('Este módulo no está disponible en este momento.')
 }

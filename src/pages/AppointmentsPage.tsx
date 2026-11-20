@@ -1,3 +1,4 @@
+import { userMessage } from '../lib/userError'
 import { usePlanningRealtime } from '../lib/usePlanningRealtime'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { FacilityPicker } from '../components/FacilityPicker'
@@ -96,7 +97,7 @@ export function AppointmentsPage({ onViewChart }: { onViewChart: (patientId: str
     readMyAccess().then((result) => {
       if (active) setAccess(result)
     }).catch((loadError: unknown) => {
-      if (active) setAccessError(loadError instanceof Error ? loadError.message : 'No se pudieron verificar los permisos.')
+      if (active) setAccessError(userMessage(loadError, 'No se pudieron verificar los permisos.'))
     }).finally(() => {
       if (active) setAccessLoading(false)
     })
@@ -140,7 +141,7 @@ export function AppointmentsPage({ onViewChart }: { onViewChart: (patientId: str
         if (active) setRequests(rows)
       })
     load.catch((loadError: unknown) => {
-      if (active) setError(loadError instanceof Error ? loadError.message : 'No se pudo cargar la agenda.')
+      if (active) setError(userMessage(loadError, 'No se pudo cargar la agenda.'))
     }).finally(() => {
       if (active) setLoading(false)
     })
@@ -168,7 +169,7 @@ export function AppointmentsPage({ onViewChart }: { onViewChart: (patientId: str
       })
       if (active) setCatalogs({ departments, specialties })
     }).catch((loadError: unknown) => {
-      if (active) setError(loadError instanceof Error ? loadError.message : 'No se pudieron cargar departamentos y especialidades.')
+      if (active) setError(userMessage(loadError, 'No se pudieron cargar departamentos y especialidades.'))
     }).finally(() => {
       if (active) setCatalogLoading(false)
     })
@@ -189,7 +190,7 @@ export function AppointmentsPage({ onViewChart }: { onViewChart: (patientId: str
         if (rows.length === 0) setAvailabilityLoading(false)
       }
     }).catch((loadError: unknown) => {
-      if (active) setScheduleError(loadError instanceof Error ? loadError.message : 'No se pudieron cargar los médicos disponibles.')
+      if (active) setScheduleError(userMessage(loadError, 'No se pudieron cargar los médicos disponibles.'))
     }).finally(() => {
       if (active) setPhysiciansLoading(false)
     })
@@ -206,7 +207,7 @@ export function AppointmentsPage({ onViewChart }: { onViewChart: (patientId: str
     readDoctorAvailability(facilityId, scheduleForm.physicianId, scheduleForm.date).then((blocks) => {
       if (active) setAvailability(blocks)
     }).catch((loadError: unknown) => {
-      if (active) setScheduleError(loadError instanceof Error ? loadError.message : 'No se pudo consultar la disponibilidad del médico.')
+      if (active) setScheduleError(userMessage(loadError, 'No se pudo consultar la disponibilidad del médico.'))
     }).finally(() => {
       if (active) setAvailabilityLoading(false)
     })
@@ -267,7 +268,7 @@ export function AppointmentsPage({ onViewChart }: { onViewChart: (patientId: str
       setScheduleForm(null)
       setRequests((current) => current.filter((request) => request.id !== scheduleForm.request.id))
     } catch (saveError: unknown) {
-      setScheduleError(saveError instanceof Error ? saveError.message : 'No se pudo asignar la cita.')
+      setScheduleError(userMessage(saveError, 'No se pudo asignar la cita.'))
     } finally {
       setSaving(false)
     }
@@ -282,7 +283,7 @@ export function AppointmentsPage({ onViewChart }: { onViewChart: (patientId: str
       setRequests((current) => current.filter((item) => item.id !== request.id))
       setActionMessage('Solicitud rechazada.')
     } catch (rejectError: unknown) {
-      setError(rejectError instanceof Error ? rejectError.message : 'No se pudo rechazar la solicitud.')
+      setError(userMessage(rejectError, 'No se pudo rechazar la solicitud.'))
     } finally {
       setSaving(false)
     }
@@ -295,7 +296,7 @@ export function AppointmentsPage({ onViewChart }: { onViewChart: (patientId: str
     return <p className="rounded-lg bg-rose-50 p-4 text-xs text-rose-800" role="alert">{accessError || facilitiesError}</p>
   }
   if (authorizedFacilities.length === 0 && receptionistMissingPermission) {
-    return <p className="rounded-lg bg-amber-50 p-4 text-xs text-amber-800" role="alert">El rol de recepción necesita el permiso appointments.all en Supabase para consultar solicitudes y asignar citas.</p>
+    return <p className="rounded-lg bg-amber-50 p-4 text-xs text-amber-800" role="alert">Tu cuenta no tiene autorización para consultar solicitudes ni asignar citas. Contacta al administrador.</p>
   }
   if (!isDoctor && !isReceptionist) {
     return <p className="rounded-lg bg-white p-5 text-xs text-slate-500">Este módulo está disponible para médicos y personal de recepción autorizado.</p>

@@ -1,3 +1,4 @@
+import { userMessage } from './userError'
 import { useEffect, useState } from 'react'
 import { readFacilities, type Facility } from './api'
 
@@ -11,7 +12,7 @@ export function useFacilities() {
     readFacilities().then((rows) => {
       if (active) setFacilities(rows)
     }).catch((loadError: unknown) => {
-      if (active) setError(loadError instanceof Error ? loadError.message : 'No se pudieron cargar las instituciones.')
+      if (active) setError(userMessage(loadError, 'No se pudieron cargar las instituciones.'))
     }).finally(() => {
       if (active) setLoading(false)
     })

@@ -20,23 +20,23 @@ export type PlanningKind = 'shift' | 'absence' | 'consultation' | 'room'
 export const staffName = (staff: PlanningStaff) => `${staff.first_name ?? ''} ${staff.last_name ?? ''}`.trim() || staff.employee_code
 export const categoryName = (category: string) => ({ doctor: 'Doctor', recepcionista: 'Recepcionista', enfermera: 'Enfermería' })[category] ?? category
 
-function connection() { if (!supabase) throw new Error('Falta configurar Supabase.'); return supabase }
+function connection() { if (!supabase) throw new Error('El sistema no está configurado correctamente. Contacta al administrador.'); return supabase }
 export async function readPlanning(week: string): Promise<PlanningData> {
   const data = await invokePlanningRpc<PlanningData>(connection(), 'read_staff_planning', { p_from: atMidnight(week), p_until: atMidnight(addDays(week, 7)) })
-  if (!data || !Array.isArray(data.staff) || !Array.isArray(data.shifts) || !Array.isArray(data.absences) || !Array.isArray(data.consultations) || !Array.isArray(data.rooms)) throw Object.assign(new Error('read_staff_planning devolvió una respuesta incompatible: faltan empleados, jornadas, descansos o consultorios. [READ_CONTRACT]'), { code: 'READ_CONTRACT' })
+  if (!data || !Array.isArray(data.staff) || !Array.isArray(data.shifts) || !Array.isArray(data.absences) || !Array.isArray(data.consultations) || !Array.isArray(data.rooms)) throw Object.assign(new Error('No se pudo cargar la programación completa. Actualiza e intenta nuevamente.'), { code: 'READ_CONTRACT' })
   return data
 }
 export async function searchPlanningStaff(query: string, role: 'doctor' | 'recepcionista'): Promise<PlanningStaff[]> {
   const staff = await invokePlanningRpc<PlanningStaff[]>(connection(), 'search_planning_staff', { p_query: query, p_role: role, p_limit: 40 })
   if (!Array.isArray(staff) || staff.some(person => !person.id || !Array.isArray(person.roles) || !Array.isArray(person.specialties))) {
-    throw Object.assign(new Error('search_planning_staff devolvió resultados incompatibles. [READ_CONTRACT]'), { code: 'READ_CONTRACT' })
+    throw Object.assign(new Error('No se pudo buscar el personal. Intenta nuevamente.'), { code: 'READ_CONTRACT' })
   }
   return staff
 }
 export async function readStaffSchedule(week: string, staffId: string): Promise<PlanningData> {
   const data = await invokePlanningRpc<PlanningData>(connection(), 'read_staff_schedule', { p_from: atMidnight(week), p_until: atMidnight(addDays(week, 7)), p_staff: staffId })
   if (!data || data.staff?.length !== 1 || data.staff[0].id !== staffId || !Array.isArray(data.shifts) || !Array.isArray(data.absences) || !Array.isArray(data.consultations) || !Array.isArray(data.rooms)) {
-    throw Object.assign(new Error('read_staff_schedule no devolvió únicamente el horario solicitado. [READ_CONTRACT]'), { code: 'READ_CONTRACT' })
+    throw Object.assign(new Error('No se pudo cargar el horario solicitado. Intenta nuevamente.'), { code: 'READ_CONTRACT' })
   }
   return data
 }
@@ -70,7 +70,7 @@ export async function saveRecurringJourney(values: Record<string, unknown>, key:
   const scopedParams = { ...params, p_weekday: scope?.weekday ?? null, p_originals: scope?.weekday === null ? scope.originals.filter(j => j.active && !j.closed_on && (!j.valid_until || j.valid_until >= String(values.valid_from))).map(j => ({ id: j.id, version: j.version })) : [] }
   if (scoped) await invokePlanningRpc(connection(), 'save_recurring_journey_scope', { ...scopedParams, p_preview: true })
   const data = await invokePlanningRpc<{ id: string }>(connection(), scoped ? 'save_recurring_journey_scope' : 'save_recurring_journey', scoped ? { ...scopedParams, p_preview: false } : params)
-  if (!data?.id) throw Object.assign(new Error('save_recurring_journey no devolvió el identificador guardado. Reintenta la misma operación. [SAVE_UNCONFIRMED]'), { code: 'SAVE_UNCONFIRMED' })
+  if (!data?.id) throw Object.assign(new Error('No se pudo confirmar el guardado. Reintenta la misma operación.'), { code: 'SAVE_UNCONFIRMED' })
   await confirmRecurringWrite({ read: readPlanning, availability: readAvailability }, values, data.id, journey)
   if (scoped && scope && journey) await confirmRecurringScope(readPlanning, values, journey, scope)
   return data

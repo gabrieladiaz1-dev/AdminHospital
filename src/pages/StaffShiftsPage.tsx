@@ -1,3 +1,4 @@
+import { userMessage } from '../lib/userError'
 import { usePlanningRealtime } from '../lib/usePlanningRealtime'
 import { AssignedConsultingRooms } from '../components/AssignedConsultingRooms'
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
@@ -84,7 +85,7 @@ export function StaffShiftsPage({ initialStaffId = '' }: { initialStaffId?: stri
           }
           appliedInitial.current = true
         }
-      } catch (err) { if (current) { if (foreground) { loadedRequest.current = requestKey; setData(previous => ({ ...previous, ready: false, shifts: [], consultations: [], absences: [], saved_shifts: [], saved_consultations: [], saved_absences: [] })); setError(err instanceof Error ? err.message : 'No se pudo cargar la programación.') } else setRefreshError('No se pudo actualizar el horario. Se muestran los datos de la última carga. Pulsa Actualizar para reintentar.') } }
+      } catch (err) { if (current) { if (foreground) { loadedRequest.current = requestKey; setData(previous => ({ ...previous, ready: false, shifts: [], consultations: [], absences: [], saved_shifts: [], saved_consultations: [], saved_absences: [] })); setError(userMessage(err, 'No se pudo cargar la programación.')) } else setRefreshError('No se pudo actualizar el horario. Se muestran los datos de la última carga. Pulsa Actualizar para reintentar.') } }
       finally { if (current && foreground) setLoading(false) }
     }
     void load()
@@ -98,7 +99,7 @@ export function StaffShiftsPage({ initialStaffId = '' }: { initialStaffId?: stri
       void searchPlanningStaff(query, role).then(result => {
         if (current) setMatches(result)
       }).catch(err => {
-        if (current) { setMatches([]); setSearchError(err instanceof Error ? err.message : 'No se pudo buscar el personal.') }
+        if (current) { setMatches([]); setSearchError(userMessage(err, 'No se pudo buscar el personal.')) }
       }).finally(() => { if (current) setSearchLoading(false) })
     }, 180)
     return () => { current = false; window.clearTimeout(timer) }
@@ -113,7 +114,7 @@ export function StaffShiftsPage({ initialStaffId = '' }: { initialStaffId?: stri
   let dates: string[] = [], previewError = ''
   if (draft) {
     try { dates = draft.exactDates ?? scheduleDates(draft.from, draft.until, draft.days) }
-    catch (err) { previewError = err instanceof Error ? err.message : 'Selecciona fechas y días.' }
+    catch (err) { previewError = userMessage(err, 'Selecciona fechas y días.') }
   }
   function switchRole(next: StaffRole) { setRole(next); setEmployee(''); setQuery(''); setDraft(null); setError(''); setNotice('') }
   function switchView(next: typeof view) { if (next === 'assign') { setEditDate(null); setAssignDate(null); setEditWeekday(null); setDraft(null); setRecurringId(editableJourney(data.recurring_journeys ?? [], employee, staffToday())?.id ?? null); setRecurringClose(false) }; setView(next); setError(''); setNotice('') }
@@ -187,7 +188,7 @@ export function StaffShiftsPage({ initialStaffId = '' }: { initialStaffId?: stri
       await savePlanningSet(draft.role, draft.kind, values, draft.originals)
       setNotice(`Guardadas ${dates.length} fechas: ${order.filter(d => dates.some(date => weekday(date) === d)).map(d => weekdays[d]).join(', ')}. Jornada, atención y descansos se guardaron juntos.`)
       setEmployee(draft.staffId); setWeek(monday(dates[0])); setDraft(null); setView('schedule'); setRevision(r => r + 1)
-    } catch (err) { setError(err instanceof Error ? err.message : 'No se pudo guardar.') }
+    } catch (err) { setError(userMessage(err, 'No se pudo guardar.')) }
     finally { setBusy(false) }
   }
   async function saveRoom(event: FormEvent) {
@@ -200,7 +201,7 @@ export function StaffShiftsPage({ initialStaffId = '' }: { initialStaffId?: stri
       const room = confirmed.rooms.find(r => r.id === roomDraft.id)
       if (!room || room.code !== roomDraft.code.trim() || room.floor_id !== (roomDraft.floor ? Number(roomDraft.floor) : null) || room.active !== roomDraft.active) throw new Error('No se pudo confirmar el cambio. Actualiza los consultorios antes de reintentar.')
       setData(confirmed); setRoomDraft(null); setNotice('Consultorio actualizado correctamente.')
-    } catch (err) { setError(err instanceof Error ? err.message : 'No se pudo guardar el consultorio.') }
+    } catch (err) { setError(userMessage(err, 'No se pudo guardar el consultorio.')) }
     finally { setBusy(false) }
   }
   const recurringEditor = <RecurringJourneyForm key={`${recurringId ?? 'new'}-${employee}-${recurringClose}-${editWeekday}-${assignDate ?? ''}`} data={data} initialEmployee={employee} initialJourney={data.recurring_journeys?.find(j => j.id === recurringId)} initialRole={role} initialDeactivate={recurringClose} editWeekday={editWeekday} editDate={editDate} initialDate={assignDate} loading={loading} onBusy={setBusy} onRefresh={() => setRevision(r => r + 1)} onManage={manageRecurring} onCancel={() => { setRecurringId(null); setRecurringClose(false); setEditDate(null); setAssignDate(null); setEditWeekday(null); setDraft(null); setView('schedule') }} onSaved={(id, date) => { const person = data.staff.find(p => p.id === id); if (person?.category === 'doctor' || person?.category === 'recepcionista') setRole(person.category); setEmployee(id); setWeek(monday(date)); setRecurringId(null); setAssignDate(null); setEditWeekday(null); setView('schedule'); setNotice('Cambios guardados y verificados. Consulta el calendario actualizado.'); setRevision(r => r + 1) }} />

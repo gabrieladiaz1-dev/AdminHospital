@@ -1,3 +1,4 @@
+import { userMessage } from '../lib/userError'
 import { useEffect, useRef, useState } from 'react'
 import { ReceptionPatientDirectory } from '../components/ReceptionPatientDirectory'
 import { ReceptionAgenda } from '../components/ReceptionAgenda'
@@ -15,7 +16,7 @@ import type { AttentionRequest, ReceptionAppointment, ReceptionPatient } from '.
 const button = 'rounded-lg bg-[#800b2c] px-5 py-3 text-sm font-semibold text-white disabled:opacity-50'
 const input = 'w-full rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm'
 const panel = 'rounded-xl border border-slate-200 bg-white p-5 shadow-sm'
-const message = (error: unknown) => error instanceof Error ? error.message : 'No se pudo completar la operación. Intenta nuevamente.'
+const message = (error: unknown) => userMessage(error, 'No se pudo completar la operación. Intenta nuevamente.')
 
 export type ReceptionTab = 'Atención presencial' | 'Solicitudes de atención' | 'Pacientes y expedientes' | 'Agenda de citas' | 'Hospitalización'
 

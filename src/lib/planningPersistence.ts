@@ -2,7 +2,7 @@ import { addDays, atMidnight, monday } from './planningDates.ts'
 import type { AvailabilitySlot, PlanningData, RecurringJourney } from './planning'
 
 interface PlanningReads { read: (week: string) => Promise<PlanningData>; availability: (week: string, doctor: string, room: string) => Promise<AvailabilitySlot[]> }
-function unconfirmed(detail: string) { return Object.assign(new Error(`La RPC aceptó el guardado, pero falta confirmar su lectura en Supabase. ${detail} Reintenta la misma operación. [SAVE_UNCONFIRMED]`), { code: 'SAVE_UNCONFIRMED' }) }
+function unconfirmed(detail: string) { console.warn("[guardado sin confirmar]", detail); return Object.assign(new Error("El guardado se envió, pero no se pudo confirmar. Actualiza los datos y comprueba si el cambio quedó registrado antes de reintentar."), { code: 'SAVE_UNCONFIRMED' }) }
 const closingDate = (journey: RecurringJourney, effective: unknown) => journey.valid_from > String(effective) ? journey.valid_from : String(effective)
 const clock = (value: unknown) => String(value ?? '').slice(0, 5)
 const days = (value: unknown) => Array.isArray(value) ? [...value].map(Number).sort((a, b) => a - b).join(',') : ''

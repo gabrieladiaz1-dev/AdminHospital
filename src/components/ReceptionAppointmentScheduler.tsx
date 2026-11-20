@@ -1,3 +1,4 @@
+import { userMessage } from '../lib/userError'
 import { usePlanningRealtime } from '../lib/usePlanningRealtime'
 import { useEffect, useRef, useState } from 'react'
 import { availableSlots, displayTime, localDate, receptionDoctors, receptionRpc, requestAppointment, type ReceptionAppointment, type ReceptionDoctor, type ReceptionPatient, type Slot } from '../lib/reception'
@@ -40,7 +41,7 @@ export function ReceptionAppointmentScheduler({ patient, code, specialties, requ
     setDoctors([]); setSlots([]); setSlot(null); setConfirmed(false); setLoading(false)
     if (!specialty || !date || date < localDate()) return
     setLoading(true)
-    receptionDoctors(specialty, date, patient.id).then(result => { if (active) { setDoctors(result.doctors); setDoctor(previous => result.doctors.some(d => d.id === previous) ? previous : ''); setComplete(result.complete) } }).catch(e => { if (active) setError(e.message) }).finally(() => { if (active) setLoading(false) })
+    receptionDoctors(specialty, date, patient.id).then(result => { if (active) { setDoctors(result.doctors); setDoctor(previous => result.doctors.some(d => d.id === previous) ? previous : ''); setComplete(result.complete) } }).catch(e => { if (active) setError(userMessage(e)) }).finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [specialty, date, patient.id, planningRevision])
   useEffect(() => {
@@ -48,7 +49,7 @@ export function ReceptionAppointmentScheduler({ patient, code, specialties, requ
     setSlots([]); setSlot(null); setConfirmed(false)
     if (!doctor) return
     setLoading(true); if (keepError.current) keepError.current = false; else setError('')
-    availableSlots(specialty, date, patient.id, doctor).then(rows => { if (active) setSlots(rows) }).catch(e => { if (active) setError(e.message) }).finally(() => { if (active) setLoading(false) })
+    availableSlots(specialty, date, patient.id, doctor).then(rows => { if (active) setSlots(rows) }).catch(e => { if (active) setError(userMessage(e)) }).finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [slotsRevision, doctor, specialty, date, patient.id, planningRevision])
   async function save() {
@@ -88,7 +89,7 @@ export function ReceptionAppointmentScheduler({ patient, code, specialties, requ
           if (isSlotConflict(e)) { keepError.current = true; setConfirmed(false); setSlotsRevision(r => r + 1) } else setDoctor('')
         } catch { /* Keep the original key when reconciliation cannot be confirmed. */ }
       }
-      setError(e instanceof Error ? e.message : 'No se confirmó el guardado. Reintenta esta misma cita; no se enviará otra solicitud.')
+      setError(userMessage(e, 'No se confirmó el guardado. Reintenta esta misma cita; no se enviará otra solicitud.'))
     } finally { lock.current = false; setSaving(false) }
   }
   const selectedDoctor = doctors.find(d => d.id === doctor)

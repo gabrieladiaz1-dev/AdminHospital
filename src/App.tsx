@@ -1,3 +1,4 @@
+import { userMessage } from './lib/userError'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { AuthGate } from './components/AuthGate'
@@ -56,7 +57,7 @@ function HospitalApp({ session, onSignOut }: { session: Session; onSignOut: () =
       if (active) setAccessState({
         access: null,
         loading: false,
-        error: loadError instanceof Error ? loadError.message : 'No se pudieron comprobar los permisos.',
+        error: userMessage(loadError, 'No se pudieron comprobar los permisos.'),
       })
     })
     return () => {

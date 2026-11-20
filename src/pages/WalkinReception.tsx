@@ -1,9 +1,10 @@
+import { userMessage } from '../lib/userError'
 import { useRef, useState } from 'react'
 import { availableSlots, displayTime, localDate, receptionRpc, type ReceptionPatient, type Slot } from '../lib/reception'
 import { WalkinRegistration } from '../components/WalkinRegistration'
 import './WalkinReception.css'
 type Mode = 'scheduled' | 'immediate'
-const errorText = (e: unknown) => e instanceof Error ? e.message : 'No se pudo completar la operación.'
+const errorText = (e: unknown) => userMessage(e, 'No se pudo completar la operación.')
 export function WalkinReception({ specialties, initialPatient = null }: { specialties: { id: number; name: string }[]; initialPatient?: ReceptionPatient | null }) {
   return <WalkinRegistration initialPatient={initialPatient} renderCare={(patient,mode) => <WalkinCare key={`${patient.id}-${mode}`} patient={patient} specialties={specialties} initialMode={mode} />} />
 }

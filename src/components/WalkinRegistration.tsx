@@ -1,3 +1,4 @@
+import { userMessage } from '../lib/userError'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { EmployeeBirthDate,EmployeeCity } from './EmployeeFields'
 import { WalkinReview } from './WalkinReview'
@@ -21,7 +22,7 @@ export function WalkinRegistration({initialPatient=null,renderCare}:{initialPati
  const [review,setReview]=useState(false)
  const today=localDate(),age=walkinAge(form.birth,today)
  const [created,setCreated]=useState(false),lock=useRef(false),savedId=useRef<string|null>(null)
- async function run(work:()=>Promise<void>){if(lock.current)return;lock.current=true;setBusy(true);setError('');try{await work()}catch(e){setError(e instanceof Error?e.message:'No se pudo completar la operación.')}finally{lock.current=false;setBusy(false)}}
+ async function run(work:()=>Promise<void>){if(lock.current)return;lock.current=true;setBusy(true);setError('');try{await work()}catch(e){setError(userMessage(e,'No se pudo completar la operación.'))}finally{lock.current=false;setBusy(false)}}
  async function recover(p:ReceptionPatient){const saved=await readWalkinRegistration(p.id);setPatient(saved);setReview(false);setCreated(false);setIdentity(false);setService(null)}
  useEffect(()=>{if(initialPatient)void Promise.resolve().then(()=>run(()=>recover(initialPatient)))},[initialPatient])
  useEffect(()=>{
@@ -55,7 +56,7 @@ export function WalkinRegistration({initialPatient=null,renderCare}:{initialPati
    const saved=await readWalkinRegistration(id)
    if(saved.dui!==dui||!saved.record_code)throw new Error('No se confirmó el registro. Busca por DUI antes de volver a guardar.')
    setPatient(saved);setReview(false);setCreated(true);setService(null)
-  }catch(e){setReview(false);const failure=e as Error&{hint?:string;code?:string};if(failure.hint&&failure.hint in blank)setErrors({[failure.hint]:failure.message});if(failure.code==='23505')setErrors({dui:'Este DUI ya está registrado. Busca y recupera el expediente existente.'});throw e}
+  }catch(e){setReview(false);const failure=e as Error&{hint?:string;code?:string};if(failure.hint&&failure.hint in blank)setErrors({[failure.hint]:userMessage(failure,"Revisa este campo.")});if(failure.code==='23505')setErrors({dui:'Este DUI ya está registrado. Busca y recupera el expediente existente.'});throw e}
  }
  const fields: {key:keyof WalkinFields;label:string;type?:string;required?:boolean;placeholder?:string;maxLength?:number}[]=[
   {key:'first',label:'Nombres',required:true,maxLength:100},{key:'last',label:'Apellidos',required:true,maxLength:100},

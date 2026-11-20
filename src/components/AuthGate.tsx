@@ -1,3 +1,4 @@
+import { userMessage } from '../lib/userError'
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { Icon } from './Icon'
@@ -34,14 +35,14 @@ export function AuthGate({
     void supabase.auth.getSession().then(({ data, error: sessionError }) => {
       if (!active) return
       if (sessionError) {
-        setError(sessionError.message)
+        setError(userMessage(sessionError))
       } else {
         setSession(data.session)
       }
       setLoading(false)
     }).catch((sessionError: unknown) => {
       if (!active) return
-      setError(sessionError instanceof Error ? sessionError.message : 'No se pudo verificar la sesión.')
+      setError(userMessage(sessionError, 'No se pudo verificar la sesión.'))
       setLoading(false)
     })
 
@@ -60,9 +61,9 @@ export function AuthGate({
     setNotice('')
     try {
       const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
-      if (signInError) setError(signInError.message)
+      if (signInError) setError(userMessage(signInError))
     } catch (signInError) {
-      setError(signInError instanceof Error ? signInError.message : 'No se pudo iniciar sesión.')
+      setError(userMessage(signInError, 'No se pudo iniciar sesión.'))
     } finally {
       setSubmitting(false)
     }
@@ -84,12 +85,12 @@ export function AuthGate({
         redirectTo: window.location.origin,
       })
       if (resetError) {
-        setError(resetError.message)
+        setError(userMessage(resetError))
       } else {
         setNotice('Si existe una cuenta con ese correo, recibirás instrucciones para restablecer tu contraseña.')
       }
     } catch (resetError) {
-      setError(resetError instanceof Error ? resetError.message : 'No se pudo solicitar la recuperación de contraseña.')
+      setError(userMessage(resetError, 'No se pudo solicitar la recuperación de contraseña.'))
     } finally {
       setSubmitting(false)
     }
@@ -98,7 +99,7 @@ export function AuthGate({
   async function signOut() {
     if (!supabase) return
     const { error: signOutError } = await supabase.auth.signOut()
-    if (signOutError) setError(signOutError.message)
+    if (signOutError) setError(userMessage(signOutError))
   }
 
   if (!supabase) {
