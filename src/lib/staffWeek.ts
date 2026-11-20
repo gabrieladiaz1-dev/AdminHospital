@@ -1,4 +1,4 @@
-import { addDays, monday, overlapsDay } from './planningDates.ts'
+import { addDays, hospitalDate, monday, overlapsDay } from './planningDates.ts'
 import type { PlanningData, PlanningStaff } from './planning'
 import type { ScheduleGroup, StaffRole } from './planningGroups'
 
@@ -10,6 +10,11 @@ export function findScheduleStaff(staff: PlanningStaff[], role: StaffRole, query
   return staff.filter(s => s.category === role && s.roles.includes(role) && tokens.every(t => normalize(`${s.first_name ?? ''} ${s.last_name ?? ''} ${s.employee_code} ${s.id}`).includes(t)))
 }
 export interface WeekBlock { id: string; kind: 'shift' | 'consultation' | 'break' | 'absence'; starts_at: string; ends_at: string; active: boolean; room?: string; minutes?: number; reason?: string | null; group?: ScheduleGroup; originDate?: string }
+export function partitionStaffWeek(calendar: { date: string; blocks: WeekBlock[] }[], today: string) {
+  const current = calendar.map(day => ({ ...day, blocks: day.date < today ? [] : day.blocks.filter(block => (block.originDate ?? hospitalDate(block.starts_at)) >= today) }))
+  const history = calendar.filter(day => day.date < today).map(day => ({ ...day, blocks: day.blocks.filter(block => (block.originDate ?? hospitalDate(block.starts_at)) === day.date) })).filter(day => day.blocks.length > 0).reverse()
+  return { current, history }
+}
 export function scheduleForDate(group: ScheduleGroup, date: string): ScheduleGroup {
   const originals = group.originals.filter(o => o.date === date)
   if (!group.dates.includes(date) || !originals.length) throw new Error('Esta fecha no corresponde a la programación seleccionada. Actualiza los horarios.')

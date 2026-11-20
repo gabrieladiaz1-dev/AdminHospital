@@ -23,7 +23,7 @@ test('distingue red, sesión, permisos, RLS, clave inválida y firma RPC', () =>
   }
 })
 
-const values = { staff_id: 'local-doctor', valid_from: '2030-01-07', valid_until: null, active: true, weekdays: [1, 2, 3, 4, 5], start_time: '08:00', end_time: '16:00', shift_type: 'ordinario', room_id: 'local-room', specialty_id: 1, breaks: [{ start_time: '12:00', end_time: '12:30', reason: 'Almuerzo' }], consultations: [{ start_time: '08:00', end_time: '16:00', slot_minutes: 30 }] }
+const values = { staff_id: 'local-doctor', valid_from: '2030-01-07', valid_until: null, active: true, weekdays: [1, 2, 3, 4, 5], start_time: '08:00', end_time: '16:00', shift_type: 'ordinario', room_id: 'local-room', specialty_id: 1, specialty_ids: [1], breaks: [{ start_time: '12:00', end_time: '12:30', reason: 'Almuerzo' }], consultations: [{ start_time: '08:00', end_time: '16:00', slot_minutes: 30 }] }
 const saved = { ...values, id: 'saved-version', staff_role: 'doctor', consulting_room_id: values.room_id, closed_on: null, version: '1', start_time: '08:00:00', end_time: '16:00:00' }
 const snapshot = { recurring_ready: true, recurring_journeys: [saved], shifts: [] }
 test('éxito exige releer la versión, confirmar una semana futura y consultar disponibilidad real', async () => {

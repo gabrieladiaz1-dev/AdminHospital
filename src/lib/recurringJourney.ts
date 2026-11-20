@@ -4,7 +4,7 @@ import type { RecurringJourney } from './planning'
 export interface JourneyValues {
   staff_id: string; weekdays: number[]; start_time: string; end_time: string; shift_type: string
   valid_from: string; valid_until: string | null; breaks: { start_time: string; end_time: string; reason: string }[]
-  consultations: { start_time: string; end_time: string; slot_minutes: number }[]; room_id: string | null; specialty_id: number | null
+  consultations: { start_time: string; end_time: string; slot_minutes: number }[]; room_id: string | null; specialty_id: number | null; specialty_ids: number[]
 }
 export function clockParts(value: string) {
   const [hour = 8, minute = 0] = value.split(':').map(Number)
@@ -65,7 +65,7 @@ export function journeyFieldErrors(values: JourneyValues, doctor: boolean): Reco
   })
   if (doctor) {
     if (!values.room_id) errors.room_id = 'Selecciona un consultorio.'
-    if (!values.specialty_id) errors.specialty_id = 'Selecciona la especialidad del doctor.'
+    if (!values.specialty_ids.length || values.specialty_ids.some(id => !Number.isInteger(id) || id <= 0) || new Set(values.specialty_ids).size !== values.specialty_ids.length || !values.specialty_id || !values.specialty_ids.includes(values.specialty_id)) errors.specialty_ids = 'Selecciona al menos una especialidad válida del doctor.'
     if (!values.consultations.length) errors.consultations = 'Añade al menos un horario de atención.'
     checkPeriods(values.consultations, 'consultations', 'Atención')
     values.consultations.forEach((consultation, index) => {
@@ -97,10 +97,10 @@ export function validateJourney(values: JourneyValues, doctor: boolean) {
   if (pauses) return pauses
   if (values.breaks.some(b => !b.reason.trim())) return 'Escribe una descripción para cada descanso.'
   if (doctor) {
-    if (!values.room_id || !values.specialty_id || !values.consultations.length) return 'Selecciona el consultorio, la especialidad y al menos un horario de atención.'
+    if (!values.room_id || !values.specialty_ids.length || !values.specialty_id || !values.specialty_ids.includes(values.specialty_id) || !values.consultations.length) return 'Selecciona el consultorio, una o más especialidades y al menos un horario de atención.'
     const medical = check(values.consultations, 'Atención')
     if (medical) return medical
     if (values.consultations.some(c => !Number.isInteger(c.slot_minutes) || c.slot_minutes < 5 || c.slot_minutes > 180)) return 'Las citas deben durar entre 5 y 180 minutos.'
-  } else if (values.room_id || values.specialty_id || values.consultations.length) return 'Recepción no utiliza consultorio ni atención médica.'
+  } else if (values.room_id || values.specialty_id || values.specialty_ids.length || values.consultations.length) return 'Recepción no utiliza consultorio ni atención médica.'
   return ''
 }

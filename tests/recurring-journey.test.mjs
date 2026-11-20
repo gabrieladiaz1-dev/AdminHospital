@@ -8,7 +8,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { clockParts, clockValue, editableJourney, journeyEnd, journeyOverlaps, journeyFieldErrors, validateJourney } from '../src/lib/recurringJourney.ts'
 import { savedScheduleGroups } from '../src/lib/planningGroups.ts'
 
-const values = { staff_id: 'local-person', weekdays: [1, 2, 3, 4, 5, 6], start_time: '08:00', end_time: '16:00', shift_type: 'ordinario', valid_from: '2030-01-01', valid_until: null, breaks: [{ start_time: '12:00', end_time: '12:30', reason: 'Almuerzo' }], consultations: [], room_id: null, specialty_id: null }
+const values = { staff_id: 'local-person', weekdays: [1, 2, 3, 4, 5, 6], start_time: '08:00', end_time: '16:00', shift_type: 'ordinario', valid_from: '2030-01-01', valid_until: null, breaks: [{ start_time: '12:00', end_time: '12:30', reason: 'Almuerzo' }], consultations: [], room_id: null, specialty_id: null, specialty_ids: [] }
 const journey = { ...values, id: 'local-rule', staff_role: 'recepcionista', consulting_room_id: null, closed_on: null, active: true, version: '1' }
 
 test('seleccionar empleado reutiliza su jornada vigente o futura sin abrir otra asignación', () => {
@@ -42,8 +42,10 @@ test('formulario de recepción conserva vigencia sin final y rechaza descansos i
 
 test('doctor exige consultorio real, especialidad y atención dentro de su jornada', () => {
   assert.match(validateJourney(values, true), /consultorio/)
-  const doctor = { ...values, room_id: 'local-room', specialty_id: 1, consultations: [{ start_time: '08:00', end_time: '16:00', slot_minutes: 30 }] }
+  const doctor = { ...values, room_id: 'local-room', specialty_id: 1, specialty_ids: [1, 2], consultations: [{ start_time: '08:00', end_time: '16:00', slot_minutes: 30 }] }
   assert.equal(validateJourney(doctor, true), '')
+  assert.match(validateJourney({ ...doctor, specialty_ids: [] }, true), /especialidades/)
+  assert.match(journeyFieldErrors({ ...doctor, specialty_ids: [1, 1] }, true).specialty_ids, /especialidad/)
   assert.match(validateJourney({ ...doctor, consultations: [{ start_time: '07:00', end_time: '16:00', slot_minutes: 30 }] }, true), /dentro de la jornada/)
   assert.match(validateJourney(doctor, false), /Recepción/)
 })
@@ -53,7 +55,7 @@ test('validación por campo identifica datos incompletos y errores de horario', 
   assert.match(missingDoctorFields.start_time, /diferentes/)
   assert.match(missingDoctorFields.end_time, /diferentes/)
   assert.match(missingDoctorFields.room_id, /consultorio/)
-  assert.match(missingDoctorFields.specialty_id, /especialidad/)
+  assert.match(missingDoctorFields.specialty_ids, /especialidad/)
   assert.match(missingDoctorFields.consultations, /horario de atención/)
   const invalidBreak = journeyFieldErrors({ ...values, breaks: [{ start_time: '07:00', end_time: '08:00', reason: '' }] }, false)
   assert.match(invalidBreak['breaks.0.start_time'], /dentro de la jornada/)
@@ -101,7 +103,7 @@ test('render del formulario: empleado primero, campos contextuales y validación
       assert.ok(html.includes('Asignar jornada fija'))
       assert.ok(html.includes('Volver al horario'))
       assert.ok(html.includes('Revisar y guardar'))
-      assert.equal((html.match(/<details class="recurring-panel" open=""/g) ?? []).length, 1)
+      assert.ok(html.includes('class="recurring-panel wizard-panel wizard-days"'))
       assert.ok(html.includes(`min="${addDays(staffToday(), 1)}" value="${addDays(staffToday(), 1)}"`))
       assert.ok(html.includes('sin fecha final, hasta que modifiques o desactives'))
       assert.ok(!html.includes('Vigente hasta'))
@@ -109,8 +111,8 @@ test('render del formulario: empleado primero, campos contextuales y validación
       assert.ok(!html.includes('16 PM'))
       assert.ok(!html.includes('<table') && !html.includes('staff-week'))
       assert.equal(html.includes('Consultorio fijo'), role === 'doctor')
-      assert.equal(html.includes('Especialidad del doctor'), role === 'doctor')
-      assert.ok(html.includes(`<b>${role === 'doctor' ? '06' : '05'}</b>`))
+      assert.equal(html.includes('Especialidades para esta jornada'), role === 'doctor')
+      assert.ok(html.includes('<b>05</b>'))
       assert.equal(html.includes('Selecciona un consultorio.'), role === 'doctor')
       assert.equal(html.includes('aria-invalid="true"'), role === 'doctor')
       const editing = { ...journey, valid_from: '2099-01-01', staff_role: role, weekdays: [1,2,3,4,5,6] }

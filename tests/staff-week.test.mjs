@@ -5,7 +5,7 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { addDays } from '../src/lib/planningDates.ts'
 import { savedScheduleGroups } from '../src/lib/planningGroups.ts'
-import { dayTimeline, employeeWeek, findScheduleStaff, formatStaffTime, minuteLabel, scheduleForDate, schoolWeek, staffToday, staffWeek, weekTimeline } from '../src/lib/staffWeek.ts'
+import { dayTimeline, employeeWeek, findScheduleStaff, formatStaffTime, minuteLabel, partitionStaffWeek, scheduleForDate, schoolWeek, staffToday, staffWeek, weekTimeline } from '../src/lib/staffWeek.ts'
 
 // Synthetic fixtures only. No RPC calls or writes are performed by these tests.
 const staff = [
@@ -54,6 +54,16 @@ test('recepcionista: un turno nocturno aparece en ambos días, sin programación
   assert.equal(result[2].blocks[0].id, 'r-shift')
   assert.ok(result.flatMap(d => d.blocks).every(b => b.id === 'r-shift'))
   assert.equal(result[2].blocks[0].originDate, '2026-11-17', 'Editar la continuación nocturna apunta a su jornada original')
+})
+
+test('los días pasados van al historial y no aparecen en el horario activo, incluso con turno nocturno', () => {
+  const original = employeeWeek(data, 'reception', week, groups)
+  const { current, history } = partitionStaffWeek(original, '2026-11-18')
+  assert.ok(current[1].blocks.length === 0)
+  assert.ok(current[2].blocks.length === 0, 'la continuación de una jornada iniciada ayer no vuelve a la cuadrícula')
+  assert.deepEqual(history.map(day => day.date), ['2026-11-17'])
+  assert.deepEqual(history[0].blocks.map(block => block.id), ['r-shift'])
+  assert.equal(original[1].blocks.length, 1, 'la separación no altera los registros cargados')
 })
 
 test('edición conserva IDs y versiones de jornada, consultorio y descanso, sin otros empleados', () => {
@@ -145,26 +155,21 @@ test('horario escolar: tres tramos generan tres filas, independientemente de cu�
   assert.equal(schoolWeek([{ date: week, blocks: [] }]).rows.length, 0)
 })
 
-test('render real del calendario y buscador directo: siete columnas, escala de horas y selección sin combo', async () => {
+test('la vista activa no dibuja jornadas pasadas y conserva la búsqueda del empleado', async () => {
   const server = await createServer({ server: { middlewareMode: true, hmr: false }, appType: 'custom' })
   try {
     const { StaffWeekCalendar } = await server.ssrLoadModule('/src/components/StaffWeekCalendar.tsx')
-    const base = { data, groups, week, onWeek() {}, canEdit: true, busy: false, loading: false, onEdit() {}, onDeactivate() {}, onCreate() {}, onRefresh() {} }
+    const base = { data, groups, week, onWeek() {}, canEdit: true, busy: false, loading: false, onEdit() {}, onCreate() {}, onRefresh() {} }
     for (const person of [staff[0], staff[1], undefined]) {
       const html = renderToStaticMarkup(createElement(StaffWeekCalendar, { ...base, person }))
-      assert.equal((html.match(/class="staff-school-day"/g) ?? []).length, 7)
-      for (const day of ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']) assert.ok(html.includes(day))
       for (const label of ['Semana anterior', 'Semana siguiente', '>Hoy<']) assert.ok(html.includes(label))
       assert.ok(!html.includes('Otra Persona'))
-      if (person?.id === 'doctor') { assert.ok(html.includes('Consultorio A-01')); assert.ok(html.includes('30 min')) }
-      if (person?.id === 'reception') assert.ok(!html.includes('Consultorio A-01'))
-      assert.ok(html.includes('staff-school-hour'))
-      assert.ok(!html.includes('--timeline-height'))
-      if (person) assert.ok(html.includes('AM') && html.includes('PM'))
-      if (!person) assert.ok(!html.includes('staff-school-activity block-'))
+      assert.ok(!html.includes('staff-day-card-event'))
+      if (person) assert.ok(html.includes('Historial'))
+      else assert.ok(html.includes('Selecciona un empleado'))
     }
     const current = renderToStaticMarkup(createElement(StaffWeekCalendar, { ...base, person: staff[0], week: staffWeek() }))
-    assert.equal((current.match(/<th scope="col" class="is-today">/g) ?? []).length, 1)
+    assert.ok(current.includes('staff-day-card'))
     const { StaffScheduleSearch } = await server.ssrLoadModule('/src/components/StaffScheduleSearch.tsx')
     const search = renderToStaticMarkup(createElement(StaffScheduleSearch, { matches: [staff[0]], query: 'maria', onQuery() {}, onSelect() {}, selectedId: 'doctor', disabled: false, loading: false }))
     assert.ok(search.includes('María Elena López'))
@@ -173,7 +178,7 @@ test('render real del calendario y buscador directo: siete columnas, escala de h
     assert.ok(!search.includes('<select'))
     const { StaffShiftsPage } = await server.ssrLoadModule('/src/pages/StaffShiftsPage.tsx')
     const page = renderToStaticMarkup(createElement(StaffShiftsPage))
-    for (const label of ['Consultar jornadas', 'Asignar jornada', 'Consultorios']) assert.ok(page.includes(label))
+    for (const label of ['Ver horario', 'Asignar jornada', 'Consultorios']) assert.ok(page.includes(label))
     assert.ok(!page.includes('Turnos de recepcionistas'))
     assert.ok(!page.includes('Horarios de doctores'))
     assert.match(page, /<option value="doctor"[^>]*>Doctor<\/option>/)
