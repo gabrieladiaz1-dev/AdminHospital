@@ -172,6 +172,16 @@ export async function availableSlots(specialty: number, date: string, patientId:
   if (bookedError) throw Object.assign(new Error(bookedError.message), { code: bookedError.code })
   return availablePatientSlots(slots, booked ?? [], ids, patientId, Date.now(), doctorId)
 }
+/** First date after `date` (within 30 days) with a free slot for the specialty, or null. */
+export async function nextAvailableDate(specialty: number, date: string): Promise<string | null> {
+  const from = new Date(new Date(`${date}T00:00:00-06:00`).getTime() + 86400000)
+  const until = new Date(from.getTime() + 30 * 86400000)
+  try {
+    const slots = await receptionRpc<Slot[]>('reception_specialty_slots', { p_specialty: specialty, p_from: from.toISOString(), p_until: until.toISOString() })
+    const first = slots.map(s => s.starts_at).sort()[0]
+    return first ? new Intl.DateTimeFormat('en-CA', { timeZone: 'America/El_Salvador', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(first)) : null
+  } catch { return null }
+}
 export async function receptionDoctors(specialty: number, date: string, patientId: string) {
   try { return { doctors: await receptionRpc<ReceptionDoctor[]>('reception_specialty_doctors', { p_specialty: specialty, p_day: date }), complete: true } }
   catch (error) {

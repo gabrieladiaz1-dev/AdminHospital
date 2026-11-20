@@ -20,12 +20,6 @@ export function RecurringJourneyForm({ data, initialEmployee = '', initialJourne
   const [originals] = useState(() => data.recurring_journeys ?? [])
   const [scope, setScope] = useState<'day' | 'weekday' | 'all'>(editDate ? 'day' : initialWeekday === null ? 'all' : 'weekday')
   const editWeekday = scope === 'all' ? null : initialWeekday
-  // A scoped edit cannot start before the version it replaces; otherwise it overlaps the previous version still in force.
-  const earliestEdit = (forScope: typeof scope) => {
-    if (!initialJourney || forScope === 'day') return staffToday()
-    const replaced = forScope === 'all' ? originals.filter(j => j.staff_id === initialJourney.staff_id && j.active && !j.closed_on && (!j.valid_until || j.valid_until >= staffToday())) : [initialJourney]
-    return [staffToday(), ...replaced.map(j => j.valid_from)].sort().at(-1)!
-  }
   const [values, setValues] = useState(() => {
     const defaults = initialValues(initialJourney, initialEmployee)
     if (initialDeactivate && defaults.valid_from <= staffToday()) defaults.valid_from = addDays(staffToday(), 1)
@@ -38,10 +32,10 @@ export function RecurringJourneyForm({ data, initialEmployee = '', initialJourne
       const assigned = data.doctor_specialties?.filter(s => s.doctor_id === initialEmployee) ?? []
       if (assigned.length) { defaults.specialty_id = assigned[0].specialty_id; defaults.specialty_ids = [assigned[0].specialty_id] }
     }
-    if (initialJourney && !editDate && defaults.valid_from < earliestEdit(scope)) defaults.valid_from = earliestEdit(scope)
+    // An effective date before the edited version's start is allowed: the server also closes the versions in force on those days.
     if (editDate) defaults.valid_from = editDate
     else if (initialDate) {
-      defaults.valid_from = [initialDate, initialJourney ? earliestEdit(scope) : staffToday()].sort().at(-1)!
+      defaults.valid_from = initialDate >= staffToday() ? initialDate : staffToday()
       defaults.weekdays = initialJourney ? [...new Set([...defaults.weekdays, weekday(initialDate)])] : [weekday(initialDate)]
     }
     return defaults
@@ -66,8 +60,6 @@ export function RecurringJourneyForm({ data, initialEmployee = '', initialJourne
   const current = journeys.filter(j => !j.closed_on && (!j.valid_until || j.valid_until >= staffToday()))
   const fieldErrors = deactivate ? {} : journeyFieldErrors(values, doctor)
   if (!initialJourney && values.valid_from < (initialDate ? staffToday() : addDays(staffToday(), 1))) fieldErrors.valid_from = initialDate ? 'La jornada debe comenzar hoy o después.' : 'La vigencia de una nueva jornada debe comenzar mañana o después.'
-  const minEdit = earliestEdit(scope)
-  if (initialJourney && !deactivate && scope !== "day" && values.valid_from < minEdit) fieldErrors.valid_from = `La fecha efectiva debe ser el ${minEdit.split("-").reverse().join("/")} o posterior, porque la jornada que editas comienza ese día.`
   const conflicts = (scope === 'day' ? [] : current).filter(j => j.id !== initialJourney?.id && !(initialJourney && editWeekday === null) && j.weekdays.some(d => values.weekdays.includes(d)) && journeyOverlaps(j, values.valid_from, values.valid_until))
   const roomUntil = scope === 'day' ? values.valid_from : null
   const roomHolder = (roomId: string | null) => roomConflicts(data.recurring_journeys ?? [], roomId, values.staff_id, values.valid_from, roomUntil, initialJourney?.id)[0]
@@ -141,7 +133,7 @@ export function RecurringJourneyForm({ data, initialEmployee = '', initialJourne
       {canConfigure && <>
       <section className="recurring-panel wizard-panel wizard-days">
         <div className="recurring-step"><b>02</b><div><h3>Días y vigencia</h3><p>Selecciona los días que repetirá todas las semanas.</p></div></div>
-        <div className="recurring-panel-content"><div className="recurring-days" aria-describedby={fieldInvalid('weekdays') ? 'journey-error-weekdays' : undefined}>{weekDays.map(d => <button type="button" key={d} disabled={initialJourney !== undefined && editWeekday !== null} aria-pressed={values.weekdays.includes(d)} onClick={() => change('weekdays', values.weekdays.includes(d) ? values.weekdays.filter(v => v !== d) : [...values.weekdays, d])}>{dayNames[d]}{values.weekdays.includes(d) && <Icon name="check" size={15} />}</button>)}</div>{fieldError('weekdays')}<div className="recurring-columns"><label>{initialJourney ? 'Fecha efectiva del cambio' : 'Vigente desde'}<input required type="date" aria-invalid={fieldInvalid('valid_from')} aria-describedby={fieldInvalid('valid_from') ? 'journey-error-valid_from' : undefined} disabled={scope === 'day'} min={(!initialJourney && !initialDate) || (deactivate && scope !== 'day') ? addDays(staffToday(), 1) : minEdit} value={values.valid_from} onChange={e => change('valid_from', e.target.value)} />{fieldError('valid_from')}</label><p className="recurring-note">{scope === 'day' ? 'Este cambio afecta únicamente la fecha seleccionada.' : 'Se repite cada semana, sin fecha final, hasta que modifiques o desactives la jornada.'}</p></div>{initialJourney && <p className="recurring-note">El cambio se aplicará desde esta fecha. La definición anterior se conservará para consultar su historial.</p>}</div>
+        <div className="recurring-panel-content"><div className="recurring-days" aria-describedby={fieldInvalid('weekdays') ? 'journey-error-weekdays' : undefined}>{weekDays.map(d => <button type="button" key={d} disabled={initialJourney !== undefined && editWeekday !== null} aria-pressed={values.weekdays.includes(d)} onClick={() => change('weekdays', values.weekdays.includes(d) ? values.weekdays.filter(v => v !== d) : [...values.weekdays, d])}>{dayNames[d]}{values.weekdays.includes(d) && <Icon name="check" size={15} />}</button>)}</div>{fieldError('weekdays')}<div className="recurring-columns"><label>{initialJourney ? 'Fecha efectiva del cambio' : 'Vigente desde'}<input required type="date" aria-invalid={fieldInvalid('valid_from')} aria-describedby={fieldInvalid('valid_from') ? 'journey-error-valid_from' : undefined} disabled={scope === 'day'} min={(!initialJourney && !initialDate) || (deactivate && scope !== 'day') ? addDays(staffToday(), 1) : staffToday()} value={values.valid_from} onChange={e => change('valid_from', e.target.value)} />{fieldError('valid_from')}</label><p className="recurring-note">{scope === 'day' ? 'Este cambio afecta únicamente la fecha seleccionada.' : 'Se repite cada semana, sin fecha final, hasta que modifiques o desactives la jornada.'}</p></div>{initialJourney && <p className="recurring-note">El cambio se aplicará desde esta fecha. La definición anterior se conservará para consultar su historial.</p>}</div>
       </section>
       <section className="recurring-panel wizard-panel wizard-hours">
         <div className="recurring-step"><b>03</b><div><h3>Horario laboral</h3><p>Usa AM para la mañana y PM para la tarde o noche.</p></div></div>

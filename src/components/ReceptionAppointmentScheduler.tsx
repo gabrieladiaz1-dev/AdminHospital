@@ -1,7 +1,7 @@
 import { userMessage } from '../lib/userError'
 import { usePlanningRealtime } from '../lib/usePlanningRealtime'
 import { useEffect, useRef, useState } from 'react'
-import { availableSlots, displayTime, localDate, receptionDoctors, receptionRpc, requestAppointment, type ReceptionAppointment, type ReceptionDoctor, type ReceptionPatient, type Slot } from '../lib/reception'
+import { availableSlots, displayTime, localDate, nextAvailableDate, receptionDoctors, receptionRpc, requestAppointment, type ReceptionAppointment, type ReceptionDoctor, type ReceptionPatient, type Slot } from '../lib/reception'
 import { appointmentMatches, bookingCall, definitiveBookingFailure, isSlotConflict, sameSlot, type BookingIntent } from '../lib/receptionBooking'
 import { Icon } from './Icon'
 import './ReceptionAgenda.css'
@@ -25,6 +25,7 @@ export function ReceptionAppointmentScheduler({ patient, code, specialties, requ
   const [recovering, setRecovering] = useState(!requestId && Boolean(sessionStorage.getItem(`reception-booking:${patient.id}`)))
   const [recoveryError, setRecoveryError] = useState(false)
   const [slotsRevision, setSlotsRevision] = useState(0)
+  const [nextDate, setNextDate] = useState<string | null>(null)
   const lock = useRef(false)
   const keepError = useRef(false)
   const key = useRef(sessionStorage.getItem(`reception-booking:${patient.id}`) || crypto.randomUUID())
@@ -38,10 +39,10 @@ export function ReceptionAppointmentScheduler({ patient, code, specialties, requ
   }, [patient.id, requestId])
   useEffect(() => {
     let active = true
-    setDoctors([]); setSlots([]); setSlot(null); setConfirmed(false); setLoading(false)
+    setDoctors([]); setSlots([]); setSlot(null); setConfirmed(false); setLoading(false); setNextDate(null)
     if (!specialty || !date || date < localDate()) return
     setLoading(true)
-    receptionDoctors(specialty, date, patient.id).then(result => { if (active) { setDoctors(result.doctors); setDoctor(previous => result.doctors.some(d => d.id === previous) ? previous : ''); setComplete(result.complete) } }).catch(e => { if (active) setError(userMessage(e)) }).finally(() => { if (active) setLoading(false) })
+    receptionDoctors(specialty, date, patient.id).then(result => { if (active && !result.doctors.length) void nextAvailableDate(specialty, date).then(next => { if (active) setNextDate(next) }); if (active) { setDoctors(result.doctors); setDoctor(previous => result.doctors.some(d => d.id === previous) ? previous : ''); setComplete(result.complete) } }).catch(e => { if (active) setError(userMessage(e)) }).finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [specialty, date, patient.id, planningRevision])
   useEffect(() => {
@@ -100,7 +101,7 @@ export function ReceptionAppointmentScheduler({ patient, code, specialties, requ
     <fieldset disabled={saving || Boolean(pending) || recovering || recoveryError} className="booking-fields"><div className="agenda-controls"><label>Especialidad<select value={specialty} disabled={Boolean(specialtyId)} onChange={e => setSpecialty(Number(e.target.value))}><option value={0}>Selecciona una especialidad</option>{specialties.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label><label>Fecha de atención<input type="date" min={localDate()} value={date} onChange={e => setDate(e.target.value)} /></label></div>
     {!requestId && <div className="agenda-controls"><label>Motivo de consulta<textarea maxLength={2000} value={reason} onChange={e => setReason(e.target.value)} /></label><label>Síntomas o información adicional<textarea maxLength={1000} value={symptoms} onChange={e => setSymptoms(e.target.value)} /></label></div>}
     {loading && <p role="status">Consultando médicos y horarios…</p>}
-    {specialty > 0 && !loading && !doctors.length && <div className="agenda-empty"><Icon name="clock" size={28} /><h4>No hay médicos disponibles para esta fecha</h4><p>Elige otro día o una especialidad diferente.</p></div>}
+    {specialty > 0 && !loading && !doctors.length && <div className="agenda-empty"><Icon name="clock" size={28} /><h4>No hay médicos disponibles para esta fecha</h4>{nextDate ? <><p>La próxima fecha con horarios para esta especialidad es el {nextDate.split("-").reverse().join("/")}.</p><button type="button" className="agenda-primary" onClick={() => setDate(nextDate)}>Ver horarios del {nextDate.split("-").reverse().join("/")}</button></> : <p>No hay horarios para esta especialidad en los próximos 30 días. Revisa las jornadas en Horarios y turnos.</p>}</div>}
     {!complete && doctors.length > 0 && <p className="agenda-note">Se muestran médicos con espacios libres. La vista completa de jornadas requiere habilitar la extensión de agenda preparada.</p>}
     <div className="agenda-doctors">{doctors.map(d => <button type="button" aria-pressed={doctor === d.id} key={d.id} onClick={() => setDoctor(d.id)}><Icon name="patient" size={25} /><strong>{d.name}</strong><span>{d.specialty || specialties.find(s => s.id === specialty)?.name}</span><small>{d.consultations.length ? [...new Set(d.consultations.map(c => `Consultorio ${c.room_code}`))].join(' · ') : 'Consultar horarios libres'}</small></button>)}</div>
     {selectedDoctor && complete && <details className="agenda-doctor-details"><summary>Jornadas y consultorios de {selectedDoctor.name} · próximos 7 días</summary><h4>Jornada laboral</h4>{selectedDoctor.shifts.map(s => <p key={s.starts_at}>{displayTime(s.starts_at)} — {displayTime(s.ends_at)}</p>)}<h4>Atención por consultorio</h4>{selectedDoctor.consultations.map(s => <p key={`${s.starts_at}-${s.room_code}`}>{displayTime(s.starts_at)} — {displayTime(s.ends_at)} · {s.room_code} · {s.slot_minutes} min</p>)}{selectedDoctor.breaks.length > 0 && <><h4>Intervalos no disponibles</h4>{selectedDoctor.breaks.map(b => <p key={b.starts_at}>{displayTime(b.starts_at)} — {displayTime(b.ends_at)}</p>)}</>}</details>}
