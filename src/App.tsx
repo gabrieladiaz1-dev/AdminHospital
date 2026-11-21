@@ -110,7 +110,7 @@ function HospitalApp({ session, onSignOut }: { session: Session; onSignOut: () =
             {page === 'Habitaciones y Camas' && <RoomsPage />}
             {page === 'Horarios y turnos' && isAdministrator && <StaffShiftsPage initialStaffId={planningStaffId} />}
             {page === 'Farmacia' && isAdministrator && <PharmacyPage />}
-            {page === 'Inventario y Recursos' && <InventoryPage />}
+            {page === 'Inventario y Recursos' && isAdministrator && <InventoryPage />}
             {page === 'Ambulancia' && (isAdministrator || isReceptionist) && <AmbulancePage key={transportRequestId ?? `fleet-${transportUnitId}`} initialRequestId={transportRequestId} initialUnitId={transportUnitId} />}
             {page === 'Reportes y Analítica' && <ReportsPage />}
             {page === 'Configuración' && isAdministrator && <ConfigurationPage />}
